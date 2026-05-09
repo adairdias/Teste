@@ -95,12 +95,16 @@ async def _listar_grupos():
     ))
     grupos = []
     for d in result.chats:
-        if isinstance(d, (Channel, Chat)):
-            grupos.append({
-                "id": d.id,
-                "title": d.title,
-                "tipo": "Supergrupo/Canal" if isinstance(d, Channel) else "Grupo",
-            })
+        if isinstance(d, Channel):
+            tipo = "Supergrupo" if getattr(d, "megagroup", False) else "Canal"
+        else:
+            tipo = "Grupo"
+        grupos.append({
+            "id": d.id,
+            "title": d.title,
+            "tipo": tipo,
+            "canal": isinstance(d, Channel) and not getattr(d, "megagroup", False),
+        })
     return grupos
 
 
@@ -110,6 +114,13 @@ async def _extrair(grupo_id):
     target = next((d.entity for d in dialogs if d.entity.id == grupo_id), None)
     if target is None:
         raise ValueError("Grupo não encontrado")
+
+    # Canais de transmissão (não megagrupos) exigem ser admin para ver membros
+    if isinstance(target, Channel) and not getattr(target, "megagroup", False):
+        raise ValueError(
+            "Este é um Canal de transmissão — assinantes não podem ver a lista de membros. "
+            "Escolha um Grupo ou Supergrupo normal."
+        )
 
     def _membro(u):
         return {
@@ -129,10 +140,19 @@ async def _extrair(grupo_id):
     except ChatAdminRequiredError:
         modo_agressivo = True
         vistos = set()
-        async for u in client.iter_participants(target, aggressive=True):
-            if u.id not in vistos:
-                vistos.add(u.id)
-                membros.append(_membro(u))
+        try:
+            async for u in client.iter_participants(target, aggressive=True):
+                if u.id not in vistos:
+                    vistos.add(u.id)
+                    membros.append(_membro(u))
+        except Exception:
+            pass  # Retorna o que conseguiu até agora
+
+    if not membros and modo_agressivo:
+        raise ValueError(
+            "Não foi possível extrair membros. Você precisa ser admin do grupo, "
+            "ou tente em um Grupo menor."
+        )
 
     return membros, modo_agressivo
 

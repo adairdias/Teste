@@ -34,9 +34,13 @@
     .stat-num.azul  { color:#58a6ff; }
     .stat-num.wpp   { color:#25d366; }
     .stat-label { font-size:.78rem; color:#8b949e; }
-    .grupo-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:13px 16px; cursor:pointer; margin-bottom:8px; transition:border-color .15s; display:flex; justify-content:space-between; align-items:center; }
+    .grupo-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:13px 16px; cursor:pointer; margin-bottom:8px; transition:border-color .15s; display:flex; justify-content:space-between; align-items:center; color:#e6edf3; }
     .grupo-item:active, .grupo-item.sel { border-color:#238636; background:#161b22; }
-    .badge { font-size:.7rem; background:#30363d; color:#8b949e; padding:3px 8px; border-radius:20px; }
+    .grupo-item strong { color:#ffffff; }
+    .badge { font-size:.7rem; padding:3px 8px; border-radius:20px; white-space:nowrap; flex-shrink:0; margin-left:8px; }
+    .badge-grupo { background:#1f3d1f; color:#3fb950; }
+    .badge-supergrupo { background:#1a2d4a; color:#79c0ff; }
+    .badge-canal { background:#3d2400; color:#e3a649; }
     .link-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:11px 14px; margin-bottom:7px; }
     .link-item a { color:#25d366; word-break:break-all; font-size:.9rem; }
     .alerta { border-radius:8px; padding:12px 14px; font-size:.85rem; margin:10px 0; }
@@ -309,21 +313,28 @@
         '<div style="text-align:center;color:#8b949e">Nenhum grupo encontrado.</div>';
       return;
     }
-    document.getElementById("lista-grupos").innerHTML = d.grupos.map(g =>
-      `<div class="grupo-item" onclick="selGrupo(${g.id},'${g.title.replace(/'/g,"\\'")}',this)">
+    document.getElementById("lista-grupos").innerHTML = d.grupos.map(g => {
+      const cls = g.canal ? "badge-canal" : g.tipo === "Supergrupo" ? "badge-supergrupo" : "badge-grupo";
+      const aviso = g.canal ? " title=\"Canais de transmissão não permitem extrair membros\"" : "";
+      return `<div class="grupo-item" onclick="selGrupo(${g.id},'${g.title.replace(/'/g,"\\'")}',${g.canal},this)">
         <strong>${g.title}</strong>
-        <span class="badge">${g.tipo}</span>
-       </div>`
-    ).join("");
+        <span class="badge ${cls}"${aviso}>${g.tipo}</span>
+       </div>`;
+    }).join("");
   }
 
-  function selGrupo(id, nome, el) {
-    grupoSel = { id, nome };
+  function selGrupo(id, nome, ehCanal, el) {
+    grupoSel = { id, nome, ehCanal };
     document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("sel"));
     el.classList.add("sel");
     const btn = document.getElementById("btn-extrair");
-    btn.disabled = false;
-    btn.textContent = `Extrair "${nome}"`;
+    if (ehCanal) {
+      btn.disabled = true;
+      btn.textContent = `⚠️ Canal "${nome}" — precisa ser admin`;
+    } else {
+      btn.disabled = false;
+      btn.textContent = `Extrair membros de "${nome}"`;
+    }
   }
 
   async function extrair() {
