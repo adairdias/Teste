@@ -157,6 +157,13 @@
   <div id="passo-5" class="step">
     <div class="card p-4 mb-3">
       <h5 class="mb-3">Extração concluída <i class="bi bi-check-circle-fill text-success"></i></h5>
+      <div id="aviso-parcial" class="alert alert-warning small mb-3" style="display:none">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        <strong>Lista parcial:</strong> você não é admin deste grupo, então o Telegram
+        limita a visualização. Foram extraídos os membros visíveis via busca.
+        Para a lista completa, você precisaria ser administrador do grupo.
+      </div>
+
       <div class="row g-2 mb-3">
         <div class="col-6">
           <div class="stat-box">
@@ -444,6 +451,7 @@
       document.getElementById("stat-humanos").textContent = data.humanos;
       document.getElementById("stat-username").textContent = data.com_username;
       document.getElementById("stat-telefone").textContent = data.com_telefone;
+      document.getElementById("aviso-parcial").style.display = data.modo_agressivo ? "block" : "none";
       irParaPasso(5);
     } catch (e) {
       mostrarErro(e.message);

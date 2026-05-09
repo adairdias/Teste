@@ -11,6 +11,7 @@ from telethon.errors import (
     SessionPasswordNeededError, FloodWaitError,
     UserPrivacyRestrictedError, UserNotMutualContactError,
     PhoneCodeExpiredError, PhoneCodeInvalidError,
+    ChatAdminRequiredError,
 )
 
 app = Flask(__name__)
@@ -84,17 +85,31 @@ async def _extrair(grupo_id):
     if target is None:
         raise ValueError("Grupo não encontrado")
 
-    membros = []
-    async for u in client.iter_participants(target):
-        membros.append({
+    def _membro(u):
+        return {
             "id": u.id,
             "username": u.username,
             "primeiro_nome": u.first_name or "",
             "ultimo_nome": u.last_name or "",
             "telefone": u.phone,
             "bot": bool(u.bot),
-        })
-    return membros
+        }
+
+    membros = []
+    modo_agressivo = False
+    try:
+        async for u in client.iter_participants(target):
+            membros.append(_membro(u))
+    except ChatAdminRequiredError:
+        # Não é admin: usa busca por letras/nomes (parcial, sem precisar de admin)
+        modo_agressivo = True
+        vistos = set()
+        async for u in client.iter_participants(target, aggressive=True):
+            if u.id not in vistos:
+                vistos.add(u.id)
+                membros.append(_membro(u))
+
+    return membros, modo_agressivo
 
 
 async def _criar_grupo_telegram(nome, usernames):
@@ -192,7 +207,7 @@ def extrair():
     grupo_id = int(data["grupo_id"])
     estado["grupo_nome"] = data["grupo_nome"]
     try:
-        membros = run(_extrair(grupo_id), timeout=300)
+        membros, modo_agressivo = run(_extrair(grupo_id), timeout=300)
         estado["membros"] = membros
         humanos = [m for m in membros if not m["bot"]]
         return jsonify({
@@ -201,6 +216,7 @@ def extrair():
             "com_username": sum(1 for m in humanos if m["username"]),
             "com_telefone": sum(1 for m in humanos if m["telefone"]),
             "bots": len(membros) - len(humanos),
+            "modo_agressivo": modo_agressivo,
         })
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
