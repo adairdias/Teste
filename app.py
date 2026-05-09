@@ -125,6 +125,7 @@ async def _extrair(grupo_id):
     def _membro(u):
         return {
             "id": u.id,
+            "access_hash": u.access_hash,  # necessário para adicionar sem @username
             "username": u.username,
             "primeiro_nome": u.first_name or "",
             "ultimo_nome": u.last_name or "",
@@ -157,40 +158,44 @@ async def _extrair(grupo_id):
     return membros, modo_agressivo
 
 
-async def _criar_grupo_telegram(nome, usernames):
+async def _criar_grupo_telegram(nome, membros):
+    from telethon.tl.types import InputPeerUser
     client = estado["client"]
     result = await client(CreateChannelRequest(title=nome, about="", megagroup=True))
     canal = result.chats[0]
 
-    adicionados, falhas = 0, []
-    for i in range(0, len(usernames), 10):
-        lote = usernames[i: i + 10]
-        entidades = []
-        for username in lote:
-            try:
-                entidades.append(await client.get_entity(username))
-            except Exception:
-                falhas.append(username)
+    # Monta entidades usando ID+access_hash (funciona mesmo sem @username)
+    entidades_todas = []
+    for m in membros:
+        try:
+            if m.get("access_hash"):
+                entidades_todas.append(InputPeerUser(m["id"], m["access_hash"]))
+            elif m.get("username"):
+                entidades_todas.append(await client.get_entity(m["username"]))
+        except Exception:
+            pass
 
-        if entidades:
+    adicionados, falhas = 0, 0
+    for i in range(0, len(entidades_todas), 10):
+        lote = entidades_todas[i: i + 10]
+        try:
+            await client(InviteToChannelRequest(canal, lote))
+            adicionados += len(lote)
+        except FloodWaitError as e:
+            await asyncio.sleep(e.seconds)
             try:
-                await client(InviteToChannelRequest(canal, entidades))
-                adicionados += len(entidades)
-            except FloodWaitError as e:
-                await asyncio.sleep(e.seconds)
-                try:
-                    await client(InviteToChannelRequest(canal, entidades))
-                    adicionados += len(entidades)
-                except Exception:
-                    falhas.extend(u.username for u in entidades if u.username)
-            except (UserPrivacyRestrictedError, UserNotMutualContactError):
-                falhas.extend(u.username for u in entidades if u.username)
+                await client(InviteToChannelRequest(canal, lote))
+                adicionados += len(lote)
             except Exception:
-                falhas.extend(u.username for u in entidades if u.username)
+                falhas += len(lote)
+        except (UserPrivacyRestrictedError, UserNotMutualContactError):
+            falhas += len(lote)
+        except Exception:
+            falhas += len(lote)
 
         await asyncio.sleep(3)
 
-    return adicionados, len(falhas)
+    return adicionados, falhas
 
 
 # ── Rotas Flask ───────────────────────────────────────────────────────────────
@@ -283,12 +288,9 @@ def criar_grupo():
     if not nome:
         return jsonify({"erro": "Informe o nome do grupo."}), 400
 
-    usernames = [
-        m["username"] for m in estado["membros"]
-        if m.get("username") and not m.get("bot")
-    ]
+    membros = [m for m in estado["membros"] if not m.get("bot")]
     try:
-        adicionados, falhas = run(_criar_grupo_telegram(nome, usernames), timeout=600)
+        adicionados, falhas = run(_criar_grupo_telegram(nome, membros), timeout=600)
         return jsonify({"adicionados": adicionados, "falhas": falhas})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
