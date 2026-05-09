@@ -4,546 +4,397 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
   <title>Extrator Telegram</title>
+  <!-- CSS apenas — não bloqueia JavaScript -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
   <style>
-    body { background: #0d1117; color: #e6edf3; min-height: 100vh; }
-    .navbar { background: #161b22; border-bottom: 1px solid #30363d; }
-    .card { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
-    .form-control, .form-select {
-      background: #0d1117; border-color: #30363d; color: #e6edf3;
-    }
-    .form-control:focus, .form-select:focus {
-      background: #0d1117; border-color: #58a6ff; color: #e6edf3;
-      box-shadow: 0 0 0 0.2rem rgba(88,166,255,.25);
-    }
-    .form-control::placeholder { color: #6e7681; }
-    .btn-primary { background: #238636; border-color: #238636; }
-    .btn-primary:hover { background: #2ea043; border-color: #2ea043; }
-    .btn-outline-light { border-color: #30363d; color: #e6edf3; }
-    .btn-outline-light:hover { background: #21262d; color: #e6edf3; border-color: #8b949e; }
-    .step { display: none; }
-    .step.ativo { display: block; }
-    .passo-indicator { font-size: 0.75rem; color: #8b949e; }
-    .stat-box {
-      background: #0d1117; border: 1px solid #30363d;
-      border-radius: 10px; padding: 16px; text-align: center;
-    }
-    .stat-num { font-size: 2rem; font-weight: 700; color: #58a6ff; }
-    .stat-label { font-size: 0.8rem; color: #8b949e; }
-    .grupo-item {
-      background: #0d1117; border: 1px solid #30363d;
-      border-radius: 8px; padding: 12px 16px; cursor: pointer;
-      margin-bottom: 8px; transition: border-color .2s;
-    }
-    .grupo-item:hover, .grupo-item.selecionado { border-color: #58a6ff; background: #161b22; }
-    .grupo-item.selecionado { border-color: #238636; }
-    .link-item {
-      background: #0d1117; border: 1px solid #30363d;
-      border-radius: 8px; padding: 10px 14px; margin-bottom: 6px;
-    }
-    .loading-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(13,17,23,.9); z-index: 9999;
-      flex-direction: column; align-items: center; justify-content: center;
-    }
-    .loading-overlay.ativo { display: flex; }
-    .spinner-border { width: 3rem; height: 3rem; color: #58a6ff; }
-    .toast-container { position: fixed; top: 70px; right: 16px; z-index: 9998; }
-    .badge-tipo { font-size: 0.7rem; }
-    .section-title { color: #8b949e; font-size: 0.8rem; text-transform: uppercase;
-      letter-spacing: .08em; margin-bottom: 12px; }
-    #passo-whatsapp .link-item a { color: #25d366; word-break: break-all; }
-    .logo-icon { font-size: 2.5rem; color: #58a6ff; }
+    body { background: #0d1117; color: #e6edf3; min-height: 100vh; font-family: sans-serif; }
+    .navbar { background: #161b22; border-bottom: 1px solid #30363d; padding: 12px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    input { width:100%; padding:12px; border-radius:8px; border:1px solid #30363d; background:#0d1117; color:#e6edf3; font-size:1rem; box-sizing:border-box; margin-bottom:4px; }
+    input:focus { outline:none; border-color:#58a6ff; box-shadow:0 0 0 3px rgba(88,166,255,.15); }
+    input::placeholder { color:#6e7681; }
+    .btn { width:100%; padding:13px; border-radius:8px; border:none; font-size:1rem; font-weight:600; cursor:pointer; margin-top:8px; }
+    .btn-green  { background:#238636; color:#fff; }
+    .btn-green:active  { background:#2ea043; }
+    .btn-blue   { background:#1f6feb; color:#fff; }
+    .btn-blue:active   { background:#388bfd; }
+    .btn-wpp    { background:#25d366; color:#fff; }
+    .btn-wpp:active    { background:#20ba57; }
+    .btn-outline{ background:transparent; color:#e6edf3; border:1px solid #30363d; }
+    .btn-outline:active{ background:#21262d; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    label { display:block; font-size:.85rem; color:#8b949e; margin-bottom:6px; margin-top:14px; }
+    .hint { font-size:.78rem; color:#6e7681; margin-top:4px; }
+    .step { display:none; }
+    .step.ativo { display:block; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+    .stat-box { background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center; }
+    .stat-num { font-size:2rem; font-weight:700; color:#58a6ff; }
+    .stat-num.verde { color:#3fb950; }
+    .stat-num.azul  { color:#58a6ff; }
+    .stat-num.wpp   { color:#25d366; }
+    .stat-label { font-size:.78rem; color:#8b949e; }
+    .grupo-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:13px 16px; cursor:pointer; margin-bottom:8px; transition:border-color .15s; display:flex; justify-content:space-between; align-items:center; }
+    .grupo-item:active, .grupo-item.sel { border-color:#238636; background:#161b22; }
+    .badge { font-size:.7rem; background:#30363d; color:#8b949e; padding:3px 8px; border-radius:20px; }
+    .link-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:11px 14px; margin-bottom:7px; }
+    .link-item a { color:#25d366; word-break:break-all; font-size:.9rem; }
+    .alerta { border-radius:8px; padding:12px 14px; font-size:.85rem; margin:10px 0; }
+    .alerta-amarelo { background:#3d2f00; border:1px solid #9e6a03; color:#e3b341; }
+    .alerta-verde   { background:#0d2119; border:1px solid #238636; color:#3fb950; }
+    .alerta-info    { background:#0d1f38; border:1px solid #1f6feb; color:#79c0ff; }
+    .loading-overlay { display:none; position:fixed; inset:0; background:rgba(13,17,23,.92); z-index:999; flex-direction:column; align-items:center; justify-content:center; }
+    .loading-overlay.ativo { display:flex; }
+    .spinner { width:42px; height:42px; border:4px solid #30363d; border-top-color:#58a6ff; border-radius:50%; animation:spin .8s linear infinite; margin-bottom:14px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#da3633; color:#fff; padding:12px 20px; border-radius:8px; z-index:1000; font-size:.9rem; display:none; max-width:90vw; text-align:center; }
+    .toast.show { display:block; }
+    /* modal */
+    .modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:500; align-items:center; justify-content:center; padding:16px; }
+    .modal-bg.show { display:flex; }
+    .modal-box { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; width:100%; max-width:420px; }
+    .modal-title { font-size:1.1rem; font-weight:600; margin-bottom:12px; }
+    .modal-footer { margin-top:16px; display:flex; gap:8px; justify-content:flex-end; }
+    .modal-footer .btn { width:auto; padding:10px 20px; }
+    .section-label { font-size:.78rem; color:#8b949e; text-transform:uppercase; letter-spacing:.06em; margin:16px 0 10px; }
+    .logo { font-size:2.5rem; margin-bottom:8px; }
+    h2 { font-size:1.2rem; margin:0 0 6px; }
+    p.sub { color:#8b949e; font-size:.9rem; margin:0 0 16px; }
   </style>
 </head>
 <body>
 
-<nav class="navbar px-3 py-2 mb-3">
-  <span class="fw-bold"><i class="bi bi-send-fill text-primary me-2"></i>Extrator Telegram</span>
-  <span class="passo-indicator" id="info-passo"></span>
-</nav>
+<div class="navbar">
+  <span style="font-weight:700">✈️ Extrator Telegram</span>
+  <span id="info-passo" style="font-size:.75rem;color:#8b949e"></span>
+</div>
 
-<div class="container pb-5" style="max-width:480px">
+<div style="max-width:480px;margin:0 auto;padding:12px">
 
-  <!-- ── Passo 1: Telefone ──────────────────────────────────────────────── -->
+  <!-- Passo 1: Telefone -->
   <div id="passo-1" class="step">
-    <div class="card p-4 text-center">
-      <div class="logo-icon mb-3"><i class="bi bi-send-fill"></i></div>
-      <h5 class="mb-1">Bem-vindo!</h5>
-      <p class="text-secondary small mb-4">
-        Digite seu número do Telegram para entrar.<br>
-        Você só precisa fazer isso <strong>uma vez</strong>.
-      </p>
-      <div class="mb-4 text-start">
-        <label class="form-label small">Seu número (com DDI) <span class="text-danger">*</span></label>
-        <input id="phone" type="tel" class="form-control form-control-lg"
-               placeholder="+5511999999999"/>
-        <div class="form-text text-secondary">Ex: +55 11 99999-9999</div>
+    <div class="card" style="text-align:center">
+      <div class="logo">📱</div>
+      <h2>Bem-vindo!</h2>
+      <p class="sub">Digite seu número do Telegram.<br>Você só faz isso <strong>uma vez</strong>.</p>
+      <div style="text-align:left">
+        <label>Seu número (com DDI)</label>
+        <input id="phone" type="tel" placeholder="+5511999999999"/>
+        <div class="hint">Exemplo: +55 11 99999-9999</div>
       </div>
-      <button class="btn btn-primary w-100 btn-lg" onclick="conectar()">
-        <i class="bi bi-box-arrow-in-right me-2"></i>Entrar no Telegram
-      </button>
+      <button class="btn btn-green" onclick="conectar()">Entrar no Telegram</button>
     </div>
   </div>
 
-  <!-- ── Passo 2: Código de verificação ────────────────────────────────── -->
+  <!-- Passo 2: Código -->
   <div id="passo-2" class="step">
-    <div class="card p-4">
-      <h5 class="mb-1">Código de verificação</h5>
-      <p class="text-secondary small mb-4">
-        O Telegram enviou um código para seu app ou SMS. Digite-o abaixo.
-      </p>
-      <div class="mb-4">
-        <label class="form-label small">Código</label>
-        <input id="codigo" type="number" class="form-control form-control-lg text-center"
-               placeholder="12345" style="letter-spacing:.2em; font-size:1.5rem"/>
-      </div>
-      <button class="btn btn-primary w-100" onclick="verificarCodigo()">
-        <i class="bi bi-check-lg me-2"></i>Verificar código
-      </button>
+    <div class="card">
+      <h2>Código de verificação</h2>
+      <p class="sub">O Telegram enviou um código para o seu app ou SMS.</p>
+      <label>Código</label>
+      <input id="codigo" type="number" placeholder="12345" style="font-size:1.6rem;text-align:center;letter-spacing:.2em"/>
+      <button class="btn btn-green" onclick="verificarCodigo()">Verificar código</button>
     </div>
   </div>
 
-  <!-- ── Passo 3: Senha 2FA (opcional) ─────────────────────────────────── -->
+  <!-- Passo 3: 2FA -->
   <div id="passo-3" class="step">
-    <div class="card p-4">
-      <h5 class="mb-1">Verificação em duas etapas</h5>
-      <p class="text-secondary small mb-4">
-        Sua conta tem senha de verificação. Digite-a abaixo.
-      </p>
-      <div class="mb-4">
-        <label class="form-label small">Senha</label>
-        <input id="senha2fa" type="password" class="form-control" placeholder="Sua senha do Telegram"/>
-      </div>
-      <button class="btn btn-primary w-100" onclick="verificarSenha2fa()">
-        <i class="bi bi-shield-lock me-2"></i>Confirmar senha
-      </button>
+    <div class="card">
+      <h2>Verificação em duas etapas</h2>
+      <p class="sub">Sua conta tem senha de verificação.</p>
+      <label>Senha</label>
+      <input id="senha2fa" type="password" placeholder="Sua senha do Telegram"/>
+      <button class="btn btn-green" onclick="verificarSenha2fa()">Confirmar senha</button>
     </div>
   </div>
 
-  <!-- ── Passo 4: Selecionar grupo ──────────────────────────────────────── -->
+  <!-- Passo 4: Grupos -->
   <div id="passo-4" class="step">
-    <div class="card p-4">
-      <h5 class="mb-3">Selecione o grupo</h5>
-      <div id="lista-grupos">
-        <div class="text-center text-secondary py-3">
-          <div class="spinner-border spinner-border-sm me-2"></div> Carregando grupos...
-        </div>
+    <div class="card">
+      <h2>Selecione o grupo</h2>
+      <div id="lista-grupos" style="margin:12px 0">
+        <div style="text-align:center;padding:20px;color:#8b949e">Carregando grupos...</div>
       </div>
-      <button id="btn-extrair" class="btn btn-primary w-100 mt-3" onclick="extrair()" disabled>
-        <i class="bi bi-download me-2"></i>Extrair membros
-      </button>
+      <button id="btn-extrair" class="btn btn-green" onclick="extrair()" disabled>Extrair membros</button>
     </div>
   </div>
 
-  <!-- ── Passo 5: Resultados ────────────────────────────────────────────── -->
+  <!-- Passo 5: Resultados -->
   <div id="passo-5" class="step">
-    <div class="card p-4 mb-3">
-      <h5 class="mb-3">Extração concluída <i class="bi bi-check-circle-fill text-success"></i></h5>
-
-      <div id="aviso-parcial" class="alert alert-warning small mb-3" style="display:none">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        <strong>Lista parcial:</strong> você não é admin deste grupo, então o Telegram
-        limita a visualização. Foram extraídos os membros visíveis via busca.
-        Para a lista completa você precisaria ser administrador do grupo.
+    <div class="card">
+      <h2>✅ Extração concluída</h2>
+      <div id="aviso-parcial" class="alerta alerta-amarelo" style="display:none">
+        ⚠️ <strong>Lista parcial:</strong> você não é admin deste grupo. Foram extraídos os membros visíveis via busca.
       </div>
-
-      <div class="row g-2 mb-3">
-        <div class="col-6">
-          <div class="stat-box">
-            <div class="stat-num" id="stat-total">0</div>
-            <div class="stat-label">Total de membros</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="stat-box">
-            <div class="stat-num text-success" id="stat-humanos">0</div>
-            <div class="stat-label">Pessoas (sem bots)</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="stat-box">
-            <div class="stat-num" style="color:#58a6ff" id="stat-username">0</div>
-            <div class="stat-label">Com @username</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="stat-box">
-            <div class="stat-num" style="color:#25d366" id="stat-telefone">0</div>
-            <div class="stat-label">Com telefone</div>
-          </div>
-        </div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num azul" id="stat-total">0</div><div class="stat-label">Total</div></div>
+        <div class="stat-box"><div class="stat-num verde" id="stat-humanos">0</div><div class="stat-label">Pessoas</div></div>
+        <div class="stat-box"><div class="stat-num azul" id="stat-username">0</div><div class="stat-label">Com @username</div></div>
+        <div class="stat-box"><div class="stat-num wpp" id="stat-telefone">0</div><div class="stat-label">Com telefone</div></div>
       </div>
-
-      <div class="section-title mt-2">O que fazer com a lista?</div>
-
-      <div class="d-grid gap-2">
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarGrupo">
-          <i class="bi bi-people-fill me-2"></i>Criar novo grupo no Telegram
-        </button>
-        <button class="btn btn-success" onclick="irParaWhatsApp()">
-          <i class="bi bi-whatsapp me-2"></i>Gerar links de convite WhatsApp
-        </button>
-        <button class="btn btn-outline-light" onclick="baixarJson()">
-          <i class="bi bi-file-earmark-arrow-down me-2"></i>Baixar lista (JSON)
-        </button>
-        <button class="btn btn-outline-light" onclick="irParaPasso(4)">
-          <i class="bi bi-arrow-repeat me-2"></i>Extrair outro grupo
-        </button>
-      </div>
+      <div class="section-label">O que fazer?</div>
+      <button class="btn btn-green" onclick="abrirModal()">👥 Criar novo grupo no Telegram</button>
+      <button class="btn btn-wpp" onclick="irParaWhatsApp()">🟢 Gerar links de convite WhatsApp</button>
+      <button class="btn btn-outline" onclick="baixarJson()">⬇️ Baixar lista (JSON)</button>
+      <button class="btn btn-outline" style="margin-top:6px" onclick="irPara(4)">🔄 Extrair outro grupo</button>
     </div>
   </div>
 
-  <!-- ── Passo 6: WhatsApp links ────────────────────────────────────────── -->
-  <div id="passo-whatsapp" class="step">
-    <div class="card p-4">
-      <button class="btn btn-sm btn-outline-light mb-3" onclick="irParaPasso(5)">
-        <i class="bi bi-arrow-left me-1"></i> Voltar
-      </button>
-      <h5 class="mb-1">Links WhatsApp</h5>
-      <p class="text-secondary small mb-3">
-        Contatos com telefone visível no Telegram. Cole o link do seu grupo WhatsApp abaixo.
-      </p>
-      <div class="mb-3">
-        <label class="form-label small">Link do grupo WhatsApp (opcional)</label>
-        <input id="link-grupo-wpp" type="url" class="form-control"
-               placeholder="https://chat.whatsapp.com/..."/>
-        <div class="form-text text-secondary">
-          Gere no WhatsApp: Grupo → ⋮ → Convidar via link
-        </div>
+  <!-- Passo WhatsApp -->
+  <div id="passo-wpp" class="step">
+    <div class="card">
+      <button class="btn btn-outline" style="width:auto;padding:8px 16px;margin-bottom:12px" onclick="irPara(5)">← Voltar</button>
+      <h2>Links WhatsApp</h2>
+      <p class="sub">Cole o link do grupo WhatsApp para incluir no convite.</p>
+      <label>Link do grupo WhatsApp (opcional)</label>
+      <input id="link-grupo-wpp" type="url" placeholder="https://chat.whatsapp.com/..."/>
+      <div class="hint">Gere no WhatsApp: Grupo → ⋮ → Convidar via link</div>
+      <button class="btn btn-wpp" onclick="carregarLinksWhatsApp()">🟢 Gerar links</button>
+      <div id="aviso-wpp" class="alerta alerta-amarelo" style="display:none;margin-top:12px">
+        ⚠️ Só aparecem membros que tornaram o telefone público no Telegram.
       </div>
-      <button class="btn btn-success w-100 mb-3" onclick="carregarLinksWhatsApp()">
-        <i class="bi bi-whatsapp me-2"></i>Gerar links
-      </button>
-
-      <div id="aviso-wpp" class="alert alert-warning small" style="display:none">
-        <i class="bi bi-exclamation-triangle me-1"></i>
-        Apenas membros que tornaram o telefone público no Telegram aparecem aqui.
-        Para os demais, compartilhe o link do grupo diretamente no chat do Telegram.
-      </div>
-
-      <div id="lista-links-wpp"></div>
+      <div id="lista-links-wpp" style="margin-top:10px"></div>
     </div>
   </div>
 
 </div><!-- /container -->
 
-<!-- ── Modal: Criar grupo Telegram ──────────────────────────────────────── -->
-<div class="modal fade" id="modalCriarGrupo" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#161b22; color:#e6edf3; border:1px solid #30363d">
-      <div class="modal-header border-secondary">
-        <h5 class="modal-title">Criar grupo no Telegram</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+<!-- Modal criar grupo -->
+<div id="modal-bg" class="modal-bg" onclick="if(event.target===this)fecharModal()">
+  <div class="modal-box">
+    <div class="modal-title">Criar grupo no Telegram</div>
+    <div id="modal-form">
+      <div class="alerta alerta-info" style="margin-bottom:12px">
+        Será criado um supergrupo e todos os membros com @username serão adicionados.
       </div>
-      <div class="modal-body">
-        <div id="modal-form-grupo">
-          <p class="text-secondary small">
-            Será criado um <strong>supergrupo</strong> e todos os membros com @username serão adicionados.
-            Membros sem username não podem ser adicionados por limitação do Telegram.
-          </p>
-          <label class="form-label small">Nome do novo grupo</label>
-          <input id="nome-novo-grupo" type="text" class="form-control" placeholder="Ex: Meu Grupo 2024"/>
-        </div>
-        <div id="modal-resultado-grupo" style="display:none"></div>
-      </div>
-      <div class="modal-footer border-secondary">
-        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
-        <button id="btn-confirmar-grupo" type="button" class="btn btn-primary" onclick="criarGrupo()">
-          <i class="bi bi-plus-circle me-2"></i>Criar grupo
-        </button>
-      </div>
+      <label>Nome do novo grupo</label>
+      <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+    </div>
+    <div id="modal-resultado" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button id="btn-criar" class="btn btn-green" onclick="criarGrupo()">Criar grupo</button>
     </div>
   </div>
 </div>
 
-<!-- ── Loading overlay ──────────────────────────────────────────────────── -->
+<!-- Loading -->
 <div class="loading-overlay" id="loading">
-  <div class="spinner-border mb-3"></div>
-  <p class="text-secondary" id="loading-msg">Aguarde...</p>
+  <div class="spinner"></div>
+  <div id="loading-msg" style="color:#8b949e;font-size:.95rem">Aguarde...</div>
 </div>
 
-<!-- ── Toast de erro ────────────────────────────────────────────────────── -->
-<div class="toast-container">
-  <div id="toast-erro" class="toast align-items-center text-bg-danger border-0" role="alert">
-    <div class="d-flex">
-      <div class="toast-body" id="toast-msg"></div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-    </div>
-  </div>
-</div>
+<!-- Toast -->
+<div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  let grupoSelecionado = null;
+  // ── Estado ────────────────────────────────────────────────────────────
+  let grupoSel = null;
 
-  // ── Navegação de passos ────────────────────────────────────────────────
-  const passos = ["passo-1","passo-2","passo-3","passo-4","passo-5","passo-whatsapp"];
-  const labels = {
-    "passo-1": "Entrar",
-    "passo-2": "Verificação",
-    "passo-3": "Senha 2FA",
-    "passo-4": "Selecionar grupo",
-    "passo-5": "Resultados",
-    "passo-whatsapp": "Links WhatsApp",
+  // ── Passos ───────────────────────────────────────────────────────────
+  const passos = ["passo-1","passo-2","passo-3","passo-4","passo-5","passo-wpp"];
+  const nomes  = {
+    "passo-1":"Entrar","passo-2":"Verificação","passo-3":"Senha 2FA",
+    "passo-4":"Selecionar grupo","passo-5":"Resultados","passo-wpp":"Links WhatsApp"
   };
 
-  function irParaPasso(n) {
-    const alvo = typeof n === "number" ? passos[n - 1] : n;
+  function irPara(n) {
+    const id = typeof n === "number" ? passos[n-1] : n;
     passos.forEach(p => document.getElementById(p).classList.remove("ativo"));
-    document.getElementById(alvo).classList.add("ativo");
-    document.getElementById("info-passo").textContent = labels[alvo] || "";
-    window.scrollTo(0, 0);
+    document.getElementById(id).classList.add("ativo");
+    document.getElementById("info-passo").textContent = nomes[id] || "";
+    window.scrollTo(0,0);
   }
 
   // ── Utilitários ───────────────────────────────────────────────────────
-  function mostrarErro(msg) {
-    document.getElementById("toast-msg").textContent = msg;
-    bootstrap.Toast.getOrCreateInstance(document.getElementById("toast-erro")).show();
+  let _toastTimer;
+  function erro(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove("show"), 4000);
   }
 
-  function setLoading(ativo, msg = "Aguarde...") {
-    document.getElementById("loading-msg").textContent = msg;
-    document.getElementById("loading").classList.toggle("ativo", ativo);
+  function load(on, msg) {
+    document.getElementById("loading-msg").textContent = msg || "Aguarde...";
+    document.getElementById("loading").classList.toggle("ativo", on);
   }
 
-  async function api(url, opts = {}) {
-    const res = await fetch(url, {
-      headers: { "Content-Type": "application/json" },
-      ...opts,
-    });
-    const data = await res.json();
-    if (!res.ok || data.erro) throw new Error(data.erro || "Erro desconhecido");
-    return data;
+  async function api(url, body) {
+    const opts = { headers: { "Content-Type": "application/json" } };
+    if (body) { opts.method = "POST"; opts.body = JSON.stringify(body); }
+    const r = await fetch(url, opts);
+    const d = await r.json();
+    if (!r.ok || d.erro) throw new Error(d.erro || "Erro desconhecido");
+    return d;
   }
 
-  // ── Verificação de sessão ao carregar ──────────────────────────────────
+  // ── Modal ──────────────────────────────────────────────────────────────
+  function abrirModal() {
+    document.getElementById("modal-bg").classList.add("show");
+  }
+  function fecharModal() {
+    document.getElementById("modal-bg").classList.remove("show");
+    document.getElementById("modal-form").style.display = "block";
+    document.getElementById("modal-resultado").style.display = "none";
+    const btn = document.getElementById("btn-criar");
+    btn.textContent = "Criar grupo"; btn.disabled = false; btn.style.display = "";
+  }
+
+  // ── Verificar sessão ao abrir ──────────────────────────────────────────
   async function verificarSessao() {
-    setLoading(true, "Verificando sessão...");
+    load(true, "Verificando sessão...");
     try {
-      const data = await api("/api/status");
-      if (data.autorizado) {
-        // Sessão válida: vai direto para os grupos
+      const d = await api("/api/status");
+      if (d.autorizado) {
         await carregarGrupos();
-        irParaPasso(4);
+        irPara(4);
       } else {
-        // Pré-preenche o telefone se já foi usado antes
-        if (data.phone) {
-          document.getElementById("phone").value = data.phone;
-        }
-        irParaPasso(1);
+        if (d.phone) document.getElementById("phone").value = d.phone;
+        irPara(1);
       }
-    } catch (e) {
-      irParaPasso(1);
+    } catch(e) {
+      irPara(1);
     } finally {
-      setLoading(false);
+      load(false);
     }
   }
 
-  // ── Passo 1: Conectar ─────────────────────────────────────────────────
+  // ── Passo 1 ────────────────────────────────────────────────────────────
   async function conectar() {
     const phone = document.getElementById("phone").value.trim();
-    if (!phone) { mostrarErro("Digite seu número de telefone."); return; }
-    setLoading(true, "Conectando ao Telegram...");
+    if (!phone) { erro("Digite seu número de telefone."); return; }
+    load(true, "Conectando ao Telegram...");
     try {
-      const data = await api("/api/conectar", {
-        method: "POST",
-        body: JSON.stringify({ phone }),
-      });
-      if (data.status === "autorizado") {
-        await carregarGrupos();
-        irParaPasso(4);
-      } else {
-        irParaPasso(2);
-      }
-    } catch (e) {
-      mostrarErro(e.message);
-    } finally {
-      setLoading(false);
-    }
+      const d = await api("/api/conectar", { phone });
+      if (d.status === "autorizado") { await carregarGrupos(); irPara(4); }
+      else irPara(2);
+    } catch(e) { erro(e.message); }
+    finally { load(false); }
   }
 
-  // ── Passo 2: Verificar código ──────────────────────────────────────────
+  // ── Passo 2 ────────────────────────────────────────────────────────────
   async function verificarCodigo() {
     const codigo = document.getElementById("codigo").value.trim();
-    if (!codigo) { mostrarErro("Digite o código."); return; }
-    setLoading(true, "Verificando código...");
+    if (!codigo) { erro("Digite o código."); return; }
+    load(true, "Verificando código...");
     try {
-      const data = await api("/api/verificar", {
-        method: "POST",
-        body: JSON.stringify({ codigo }),
-      });
-      if (data.status === "senha_2fa") {
-        irParaPasso(3);
-      } else {
-        await carregarGrupos();
-        irParaPasso(4);
-      }
-    } catch (e) {
-      mostrarErro(e.message);
-    } finally {
-      setLoading(false);
-    }
+      const d = await api("/api/verificar", { codigo });
+      if (d.status === "senha_2fa") irPara(3);
+      else { await carregarGrupos(); irPara(4); }
+    } catch(e) { erro(e.message); }
+    finally { load(false); }
   }
 
-  // ── Passo 3: Senha 2FA ─────────────────────────────────────────────────
+  // ── Passo 3 ────────────────────────────────────────────────────────────
   async function verificarSenha2fa() {
     const senha = document.getElementById("senha2fa").value;
-    if (!senha) { mostrarErro("Digite a senha."); return; }
-    setLoading(true, "Verificando senha...");
+    if (!senha) { erro("Digite a senha."); return; }
+    load(true, "Verificando...");
     try {
-      await api("/api/senha-2fa", {
-        method: "POST",
-        body: JSON.stringify({ senha }),
-      });
-      await carregarGrupos();
-      irParaPasso(4);
-    } catch (e) {
-      mostrarErro(e.message);
-    } finally {
-      setLoading(false);
-    }
+      await api("/api/senha-2fa", { senha });
+      await carregarGrupos(); irPara(4);
+    } catch(e) { erro(e.message); }
+    finally { load(false); }
   }
 
-  // ── Passo 4: Grupos ────────────────────────────────────────────────────
+  // ── Passo 4 ────────────────────────────────────────────────────────────
   async function carregarGrupos() {
-    const container = document.getElementById("lista-grupos");
-    container.innerHTML = `<div class="text-center text-secondary py-3">
-      <div class="spinner-border spinner-border-sm me-2"></div> Carregando grupos...</div>`;
-    const data = await api("/api/grupos");
-    if (!data.grupos.length) {
-      container.innerHTML = `<p class="text-secondary text-center">Nenhum grupo encontrado.</p>`;
+    document.getElementById("lista-grupos").innerHTML =
+      '<div style="text-align:center;padding:20px;color:#8b949e">Carregando grupos...</div>';
+    const d = await api("/api/grupos");
+    if (!d.grupos.length) {
+      document.getElementById("lista-grupos").innerHTML =
+        '<div style="text-align:center;color:#8b949e">Nenhum grupo encontrado.</div>';
       return;
     }
-    container.innerHTML = data.grupos.map(g => `
-      <div class="grupo-item" onclick="selecionarGrupo(${g.id}, '${g.title.replace(/'/g,"\\'")}', this)">
-        <div class="d-flex justify-content-between align-items-center">
-          <strong>${g.title}</strong>
-          <span class="badge bg-secondary badge-tipo">${g.tipo}</span>
-        </div>
-      </div>`).join("");
+    document.getElementById("lista-grupos").innerHTML = d.grupos.map(g =>
+      `<div class="grupo-item" onclick="selGrupo(${g.id},'${g.title.replace(/'/g,"\\'")}',this)">
+        <strong>${g.title}</strong>
+        <span class="badge">${g.tipo}</span>
+       </div>`
+    ).join("");
   }
 
-  function selecionarGrupo(id, nome, el) {
-    grupoSelecionado = { id, nome };
-    document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("selecionado"));
-    el.classList.add("selecionado");
+  function selGrupo(id, nome, el) {
+    grupoSel = { id, nome };
+    document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("sel"));
+    el.classList.add("sel");
     const btn = document.getElementById("btn-extrair");
     btn.disabled = false;
-    btn.innerHTML = `<i class="bi bi-download me-2"></i>Extrair membros de "${nome}"`;
+    btn.textContent = `Extrair "${nome}"`;
   }
 
   async function extrair() {
-    if (!grupoSelecionado) { mostrarErro("Selecione um grupo."); return; }
-    setLoading(true, "Extraindo membros... isso pode levar alguns minutos em grupos grandes.");
+    if (!grupoSel) { erro("Selecione um grupo."); return; }
+    load(true, "Extraindo membros... pode demorar alguns minutos.");
     try {
-      const data = await api("/api/extrair", {
-        method: "POST",
-        body: JSON.stringify({ grupo_id: grupoSelecionado.id, grupo_nome: grupoSelecionado.nome }),
-      });
-      document.getElementById("stat-total").textContent = data.total;
-      document.getElementById("stat-humanos").textContent = data.humanos;
-      document.getElementById("stat-username").textContent = data.com_username;
-      document.getElementById("stat-telefone").textContent = data.com_telefone;
-      document.getElementById("aviso-parcial").style.display = data.modo_agressivo ? "block" : "none";
-      irParaPasso(5);
-    } catch (e) {
-      mostrarErro(e.message);
-    } finally {
-      setLoading(false);
-    }
+      const d = await api("/api/extrair", { grupo_id: grupoSel.id, grupo_nome: grupoSel.nome });
+      document.getElementById("stat-total").textContent    = d.total;
+      document.getElementById("stat-humanos").textContent  = d.humanos;
+      document.getElementById("stat-username").textContent = d.com_username;
+      document.getElementById("stat-telefone").textContent = d.com_telefone;
+      document.getElementById("aviso-parcial").style.display = d.modo_agressivo ? "block" : "none";
+      irPara(5);
+    } catch(e) { erro(e.message); }
+    finally { load(false); }
   }
 
-  // ── Passo 5: Ações ─────────────────────────────────────────────────────
+  // ── Passo 5 ────────────────────────────────────────────────────────────
   async function criarGrupo() {
     const nome = document.getElementById("nome-novo-grupo").value.trim();
-    if (!nome) { mostrarErro("Digite o nome do grupo."); return; }
-
-    const btn = document.getElementById("btn-confirmar-grupo");
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Criando...`;
-
+    if (!nome) { erro("Digite o nome do grupo."); return; }
+    const btn = document.getElementById("btn-criar");
+    btn.textContent = "Criando..."; btn.disabled = true;
     try {
-      const data = await api("/api/criar-grupo", {
-        method: "POST",
-        body: JSON.stringify({ nome }),
-      });
-      document.getElementById("modal-form-grupo").style.display = "none";
-      document.getElementById("modal-resultado-grupo").style.display = "block";
-      document.getElementById("modal-resultado-grupo").innerHTML = `
-        <div class="alert alert-success">
-          <i class="bi bi-check-circle me-2"></i>
-          <strong>Grupo criado com sucesso!</strong><br>
-          <span class="small">
-            ${data.adicionados} pessoa(s) adicionadas.
-            ${data.falhas > 0 ? `${data.falhas} não puderam ser adicionadas (privacidade).` : ""}
-          </span>
-        </div>`;
+      const d = await api("/api/criar-grupo", { nome });
+      document.getElementById("modal-form").style.display = "none";
+      document.getElementById("modal-resultado").style.display = "block";
+      document.getElementById("modal-resultado").innerHTML =
+        `<div class="alerta alerta-verde">✅ <strong>Grupo criado!</strong><br>
+         ${d.adicionados} pessoa(s) adicionadas.${d.falhas>0?` ${d.falhas} não puderam (privacidade).`:""}</div>`;
       btn.style.display = "none";
-    } catch (e) {
-      mostrarErro(e.message);
-      btn.disabled = false;
-      btn.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
+    } catch(e) {
+      erro(e.message);
+      btn.textContent = "Criar grupo"; btn.disabled = false;
     }
   }
 
   function baixarJson() { window.location.href = "/api/download"; }
-  function irParaWhatsApp() { irParaPasso("passo-whatsapp"); }
+  function irParaWhatsApp() { irPara("passo-wpp"); }
 
-  // ── WhatsApp links ─────────────────────────────────────────────────────
   async function carregarLinksWhatsApp() {
-    const linkGrupo = document.getElementById("link-grupo-wpp").value.trim();
-    setLoading(true, "Gerando links...");
+    const lg = document.getElementById("link-grupo-wpp").value.trim();
+    load(true, "Gerando links...");
     try {
-      const url = "/api/links-whatsapp" + (linkGrupo ? `?link_grupo=${encodeURIComponent(linkGrupo)}` : "");
-      const data = await api(url);
-      const container = document.getElementById("lista-links-wpp");
+      const url = "/api/links-whatsapp" + (lg ? "?link_grupo=" + encodeURIComponent(lg) : "");
+      const d = await api(url);
       document.getElementById("aviso-wpp").style.display = "block";
-
-      if (!data.links.length) {
-        container.innerHTML = `<div class="alert alert-warning small mt-2">
-          Nenhum membro com telefone visível encontrado.<br><br>
-          <strong>Alternativa:</strong> Gere um link de convite no seu grupo do WhatsApp
-          e compartilhe diretamente no Telegram.
-        </div>`;
+      const c = document.getElementById("lista-links-wpp");
+      if (!d.links.length) {
+        c.innerHTML = `<div class="alerta alerta-amarelo">Nenhum membro com telefone visível.
+          <br><br><strong>Alternativa:</strong> gere o link de convite no WhatsApp e cole aqui para mandar no Telegram.</div>`;
       } else {
-        container.innerHTML = `<p class="text-secondary small mb-2">${data.links.length} contato(s) com telefone:</p>` +
-          data.links.map(l => `
-            <div class="link-item">
-              <div class="fw-semibold small">${l.nome}</div>
-              <div class="text-secondary" style="font-size:.75rem">${l.telefone}</div>
-              <a href="${l.link}" target="_blank" class="small">
-                <i class="bi bi-whatsapp me-1"></i>Abrir conversa no WhatsApp
-              </a>
-            </div>`).join("");
+        c.innerHTML = `<div style="color:#8b949e;font-size:.85rem;margin-bottom:8px">${d.links.length} contato(s):</div>` +
+          d.links.map(l =>
+            `<div class="link-item"><div style="font-weight:600;font-size:.9rem">${l.nome}</div>
+             <div style="color:#8b949e;font-size:.75rem">${l.telefone}</div>
+             <a href="${l.link}" target="_blank">🟢 Abrir no WhatsApp</a></div>`
+          ).join("");
       }
-    } catch (e) {
-      mostrarErro(e.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch(e) { erro(e.message); }
+    finally { load(false); }
   }
 
-  // ── Atalhos de teclado ─────────────────────────────────────────────────
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("phone").addEventListener("keydown",   e => { if (e.key === "Enter") conectar(); });
-    document.getElementById("codigo").addEventListener("keydown",  e => { if (e.key === "Enter") verificarCodigo(); });
-    document.getElementById("senha2fa").addEventListener("keydown",e => { if (e.key === "Enter") verificarSenha2fa(); });
-    document.getElementById("nome-novo-grupo").addEventListener("keydown", e => { if (e.key === "Enter") criarGrupo(); });
+  // ── Enter nos campos ───────────────────────────────────────────────────
+  document.getElementById("phone").onkeydown         = e => { if(e.key==="Enter") conectar(); };
+  document.getElementById("codigo").onkeydown        = e => { if(e.key==="Enter") verificarCodigo(); };
+  document.getElementById("senha2fa").onkeydown      = e => { if(e.key==="Enter") verificarSenha2fa(); };
+  document.getElementById("nome-novo-grupo").onkeydown = e => { if(e.key==="Enter") criarGrupo(); };
 
-    document.getElementById("modalCriarGrupo").addEventListener("hidden.bs.modal", () => {
-      document.getElementById("modal-form-grupo").style.display = "block";
-      document.getElementById("modal-resultado-grupo").style.display = "none";
-      const btn = document.getElementById("btn-confirmar-grupo");
-      btn.disabled = false;
-      btn.style.display = "inline-block";
-      btn.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
-    });
-
-    // Verifica sessão ao abrir o app
-    verificarSessao();
-  });
+  // ── Iniciar ────────────────────────────────────────────────────────────
+  verificarSessao();
 </script>
 </body>
 </html>
