@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Extrator Telegram</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+  <style>
+    body { background: #0d1117; color: #e6edf3; min-height: 100vh; }
+    .navbar { background: #161b22; border-bottom: 1px solid #30363d; }
+    .card { background: #161b22; border: 1px solid #30363d; color: #e6edf3; }
+    .form-control, .form-select {
+      background: #0d1117; border-color: #30363d; color: #e6edf3;
+    }
+    .form-control:focus, .form-select:focus {
+      background: #0d1117; border-color: #58a6ff; color: #e6edf3;
+      box-shadow: 0 0 0 0.2rem rgba(88,166,255,.25);
+    }
+    .form-control::placeholder { color: #6e7681; }
+    .btn-primary { background: #238636; border-color: #238636; }
+    .btn-primary:hover { background: #2ea043; border-color: #2ea043; }
+    .btn-outline-light { border-color: #30363d; color: #e6edf3; }
+    .btn-outline-light:hover { background: #21262d; color: #e6edf3; border-color: #8b949e; }
+    .step { display: none; }
+    .step.ativo { display: block; }
+    .passo-indicator { font-size: 0.75rem; color: #8b949e; }
+    .stat-box {
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 10px; padding: 16px; text-align: center;
+    }
+    .stat-num { font-size: 2rem; font-weight: 700; color: #58a6ff; }
+    .stat-label { font-size: 0.8rem; color: #8b949e; }
+    .grupo-item {
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; padding: 12px 16px; cursor: pointer;
+      margin-bottom: 8px; transition: border-color .2s;
+    }
+    .grupo-item:hover, .grupo-item.selecionado {
+      border-color: #58a6ff; background: #161b22;
+    }
+    .grupo-item.selecionado { border-color: #238636; }
+    .link-item {
+      background: #0d1117; border: 1px solid #30363d;
+      border-radius: 8px; padding: 10px 14px; margin-bottom: 6px;
+    }
+    .loading-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(13,17,23,.85); z-index: 9999;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    .loading-overlay.ativo { display: flex; }
+    .spinner-border { width: 3rem; height: 3rem; color: #58a6ff; }
+    .toast-container { position: fixed; top: 70px; right: 16px; z-index: 9998; }
+    .badge-tipo { font-size: 0.7rem; }
+    .section-title { color: #8b949e; font-size: 0.8rem; text-transform: uppercase;
+      letter-spacing: .08em; margin-bottom: 12px; }
+    #passo-whatsapp .link-item a { color: #25d366; word-break: break-all; }
+  </style>
+</head>
+<body>
+
+<nav class="navbar px-3 py-2 mb-3">
+  <span class="fw-bold"><i class="bi bi-send-fill text-primary me-2"></i>Extrator Telegram</span>
+  <span class="passo-indicator" id="info-passo"></span>
+</nav>
+
+<div class="container pb-5" style="max-width:480px">
+
+  <!-- ── Passo 1: Credenciais ───────────────────────────────────────────── -->
+  <div id="passo-1" class="step ativo">
+    <div class="card p-4">
+      <h5 class="mb-1">Configurar acesso</h5>
+      <p class="text-secondary small mb-3">
+        Você precisa das credenciais da API do Telegram.
+        <a href="#" onclick="mostrarAjudaApi(); return false;" class="text-primary">Como obter?</a>
+      </p>
+
+      <div id="ajuda-api" class="alert alert-secondary small mb-3" style="display:none">
+        <strong>Como obter API_ID e API_HASH:</strong><br>
+        1. Abra <strong>my.telegram.org</strong> no navegador<br>
+        2. Faça login com seu número<br>
+        3. Clique em <em>"API development tools"</em><br>
+        4. Preencha o formulário (qualquer nome de app)<br>
+        5. Copie o <strong>App api_id</strong> e <strong>App api_hash</strong>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small">API ID <span class="text-danger">*</span></label>
+        <input id="api_id" type="number" class="form-control" placeholder="Ex: 1234567"/>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small">API Hash <span class="text-danger">*</span></label>
+        <input id="api_hash" type="text" class="form-control" placeholder="Ex: abc123def456..."/>
+      </div>
+      <div class="mb-4">
+        <label class="form-label small">Seu número (com DDI) <span class="text-danger">*</span></label>
+        <input id="phone" type="tel" class="form-control" placeholder="+5511999999999"/>
+      </div>
+      <button class="btn btn-primary w-100" onclick="conectar()">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Conectar ao Telegram
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Passo 2: Código de verificação ────────────────────────────────── -->
+  <div id="passo-2" class="step">
+    <div class="card p-4">
+      <h5 class="mb-1">Código de verificação</h5>
+      <p class="text-secondary small mb-4">
+        O Telegram enviou um código para seu app ou SMS. Digite-o abaixo.
+      </p>
+      <div class="mb-4">
+        <label class="form-label small">Código</label>
+        <input id="codigo" type="number" class="form-control form-control-lg text-center"
+               placeholder="12345" style="letter-spacing:.2em; font-size:1.5rem"/>
+      </div>
+      <button class="btn btn-primary w-100" onclick="verificarCodigo()">
+        <i class="bi bi-check-lg me-2"></i>Verificar código
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Passo 3: Senha 2FA (opcional) ─────────────────────────────────── -->
+  <div id="passo-3" class="step">
+    <div class="card p-4">
+      <h5 class="mb-1">Verificação em duas etapas</h5>
+      <p class="text-secondary small mb-4">
+        Sua conta tem senha de verificação. Digite-a abaixo.
+      </p>
+      <div class="mb-4">
+        <label class="form-label small">Senha</label>
+        <input id="senha2fa" type="password" class="form-control" placeholder="Sua senha do Telegram"/>
+      </div>
+      <button class="btn btn-primary w-100" onclick="verificarSenha2fa()">
+        <i class="bi bi-shield-lock me-2"></i>Confirmar senha
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Passo 4: Selecionar grupo ──────────────────────────────────────── -->
+  <div id="passo-4" class="step">
+    <div class="card p-4">
+      <h5 class="mb-3">Selecione o grupo</h5>
+      <div id="lista-grupos">
+        <div class="text-center text-secondary py-3">
+          <div class="spinner-border spinner-border-sm me-2"></div> Carregando grupos...
+        </div>
+      </div>
+      <button id="btn-extrair" class="btn btn-primary w-100 mt-3" onclick="extrair()" disabled>
+        <i class="bi bi-download me-2"></i>Extrair membros
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Passo 5: Resultados ────────────────────────────────────────────── -->
+  <div id="passo-5" class="step">
+    <div class="card p-4 mb-3">
+      <h5 class="mb-3">Extração concluída <i class="bi bi-check-circle-fill text-success"></i></h5>
+      <div class="row g-2 mb-3">
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-num" id="stat-total">0</div>
+            <div class="stat-label">Total de membros</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-num text-success" id="stat-humanos">0</div>
+            <div class="stat-label">Pessoas (sem bots)</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-num" style="color:#58a6ff" id="stat-username">0</div>
+            <div class="stat-label">Com @username</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="stat-box">
+            <div class="stat-num" style="color:#25d366" id="stat-telefone">0</div>
+            <div class="stat-label">Com telefone</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title mt-2">O que fazer com a lista?</div>
+
+      <div class="d-grid gap-2">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCriarGrupo">
+          <i class="bi bi-people-fill me-2"></i>Criar novo grupo no Telegram
+        </button>
+        <button class="btn btn-success" onclick="irParaWhatsApp()">
+          <i class="bi bi-whatsapp me-2"></i>Gerar links de convite WhatsApp
+        </button>
+        <button class="btn btn-outline-light" onclick="baixarJson()">
+          <i class="bi bi-file-earmark-arrow-down me-2"></i>Baixar lista (JSON)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Passo 6: WhatsApp links ────────────────────────────────────────── -->
+  <div id="passo-whatsapp" class="step">
+    <div class="card p-4">
+      <button class="btn btn-sm btn-outline-light mb-3" onclick="irParaPasso(5)">
+        <i class="bi bi-arrow-left me-1"></i> Voltar
+      </button>
+      <h5 class="mb-1">Links WhatsApp</h5>
+      <p class="text-secondary small mb-3">
+        Contatos com telefone visível no Telegram. Cole o link do seu grupo WhatsApp abaixo para incluir no convite.
+      </p>
+      <div class="mb-3">
+        <label class="form-label small">Link do grupo WhatsApp (opcional)</label>
+        <input id="link-grupo-wpp" type="url" class="form-control"
+               placeholder="https://chat.whatsapp.com/..."/>
+        <div class="form-text text-secondary">
+          Gere este link no WhatsApp: Grupo → Convidar via link
+        </div>
+      </div>
+      <button class="btn btn-success w-100 mb-3" onclick="carregarLinksWhatsApp()">
+        <i class="bi bi-whatsapp me-2"></i>Gerar links
+      </button>
+
+      <div id="aviso-wpp" class="alert alert-warning small" style="display:none">
+        <i class="bi bi-exclamation-triangle me-1"></i>
+        Apenas membros que tornaram o telefone público no Telegram aparecem aqui.
+        Normalmente é uma minoria. Para os demais, compartilhe o link do grupo
+        diretamente no chat do Telegram.
+      </div>
+
+      <div id="lista-links-wpp"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- ── Modal: Criar grupo Telegram ──────────────────────────────────────── -->
+<div class="modal fade" id="modalCriarGrupo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#161b22; color:#e6edf3; border:1px solid #30363d">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title">Criar grupo no Telegram</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-form-grupo">
+          <p class="text-secondary small">
+            Será criado um <strong>supergrupo</strong> e todos os membros com @username serão adicionados.
+            Membros sem username não podem ser adicionados por limitação do Telegram.
+          </p>
+          <label class="form-label small">Nome do novo grupo</label>
+          <input id="nome-novo-grupo" type="text" class="form-control" placeholder="Ex: Meu Grupo 2024"/>
+        </div>
+        <div id="modal-resultado-grupo" style="display:none"></div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancelar</button>
+        <button id="btn-confirmar-grupo" type="button" class="btn btn-primary" onclick="criarGrupo()">
+          <i class="bi bi-plus-circle me-2"></i>Criar grupo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Loading overlay ──────────────────────────────────────────────────── -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner-border mb-3"></div>
+  <p class="text-secondary" id="loading-msg">Aguarde...</p>
+</div>
+
+<!-- ── Toast de erro ────────────────────────────────────────────────────── -->
+<div class="toast-container">
+  <div id="toast-erro" class="toast align-items-center text-bg-danger border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body" id="toast-msg"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  let grupoSelecionado = null;
+
+  // ── Navegação de passos ────────────────────────────────────────────────
+  const passos = ["passo-1","passo-2","passo-3","passo-4","passo-5","passo-whatsapp"];
+  const labels = {
+    "passo-1": "Passo 1 — Credenciais",
+    "passo-2": "Passo 2 — Verificação",
+    "passo-3": "Passo 3 — Senha 2FA",
+    "passo-4": "Passo 4 — Selecionar grupo",
+    "passo-5": "Passo 5 — Resultados",
+    "passo-whatsapp": "Links WhatsApp",
+  };
+
+  function irParaPasso(n) {
+    const id = passos[n - 1] || n;
+    passos.forEach(p => document.getElementById(p).classList.remove("ativo"));
+    const alvo = typeof n === "string" ? n : passos[n - 1];
+    document.getElementById(alvo).classList.add("ativo");
+    document.getElementById("info-passo").textContent = labels[alvo] || "";
+    window.scrollTo(0, 0);
+  }
+
+  // ── Utilitários ───────────────────────────────────────────────────────
+  function mostrarErro(msg) {
+    document.getElementById("toast-msg").textContent = msg;
+    bootstrap.Toast.getOrCreateInstance(document.getElementById("toast-erro")).show();
+  }
+
+  function setLoading(ativo, msg = "Aguarde...") {
+    document.getElementById("loading-msg").textContent = msg;
+    document.getElementById("loading").classList.toggle("ativo", ativo);
+  }
+
+  async function api(url, opts = {}) {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      ...opts,
+    });
+    const data = await res.json();
+    if (!res.ok || data.erro) throw new Error(data.erro || "Erro desconhecido");
+    return data;
+  }
+
+  function mostrarAjudaApi() {
+    const el = document.getElementById("ajuda-api");
+    el.style.display = el.style.display === "none" ? "block" : "none";
+  }
+
+  // ── Passo 1: Conectar ─────────────────────────────────────────────────
+  async function conectar() {
+    const api_id = document.getElementById("api_id").value.trim();
+    const api_hash = document.getElementById("api_hash").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    if (!api_id || !api_hash || !phone) {
+      mostrarErro("Preencha todos os campos.");
+      return;
+    }
+    setLoading(true, "Conectando ao Telegram...");
+    try {
+      const data = await api("/api/conectar", {
+        method: "POST",
+        body: JSON.stringify({ api_id, api_hash, phone }),
+      });
+      if (data.status === "autorizado") {
+        // Sessão já existente, vai direto para os grupos
+        await carregarGrupos();
+        irParaPasso(4);
+      } else {
+        irParaPasso(2);
+      }
+    } catch (e) {
+      mostrarErro(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Passo 2: Verificar código ──────────────────────────────────────────
+  async function verificarCodigo() {
+    const codigo = document.getElementById("codigo").value.trim();
+    if (!codigo) { mostrarErro("Digite o código."); return; }
+    setLoading(true, "Verificando código...");
+    try {
+      const data = await api("/api/verificar", {
+        method: "POST",
+        body: JSON.stringify({ codigo }),
+      });
+      if (data.status === "senha_2fa") {
+        irParaPasso(3);
+      } else {
+        await carregarGrupos();
+        irParaPasso(4);
+      }
+    } catch (e) {
+      mostrarErro(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Passo 3: Senha 2FA ─────────────────────────────────────────────────
+  async function verificarSenha2fa() {
+    const senha = document.getElementById("senha2fa").value;
+    if (!senha) { mostrarErro("Digite a senha."); return; }
+    setLoading(true, "Verificando senha...");
+    try {
+      await api("/api/senha-2fa", {
+        method: "POST",
+        body: JSON.stringify({ senha }),
+      });
+      await carregarGrupos();
+      irParaPasso(4);
+    } catch (e) {
+      mostrarErro(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Passo 4: Grupos ────────────────────────────────────────────────────
+  async function carregarGrupos() {
+    const container = document.getElementById("lista-grupos");
+    container.innerHTML = `<div class="text-center text-secondary py-3">
+      <div class="spinner-border spinner-border-sm me-2"></div> Carregando grupos...</div>`;
+    try {
+      const data = await api("/api/grupos");
+      if (!data.grupos.length) {
+        container.innerHTML = `<p class="text-secondary text-center">Nenhum grupo encontrado.</p>`;
+        return;
+      }
+      container.innerHTML = data.grupos.map(g => `
+        <div class="grupo-item" onclick="selecionarGrupo(${g.id}, '${g.title.replace(/'/g,"\\'")}', this)">
+          <div class="d-flex justify-content-between align-items-center">
+            <strong>${g.title}</strong>
+            <span class="badge bg-secondary badge-tipo">${g.tipo}</span>
+          </div>
+        </div>`).join("");
+    } catch (e) {
+      container.innerHTML = `<p class="text-danger">${e.message}</p>`;
+    }
+  }
+
+  function selecionarGrupo(id, nome, el) {
+    grupoSelecionado = { id, nome };
+    document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("selecionado"));
+    el.classList.add("selecionado");
+    document.getElementById("btn-extrair").disabled = false;
+    document.getElementById("btn-extrair").textContent = `Extrair membros de "${nome}"`;
+  }
+
+  async function extrair() {
+    if (!grupoSelecionado) { mostrarErro("Selecione um grupo."); return; }
+    setLoading(true, `Extraindo membros... isso pode levar alguns minutos em grupos grandes.`);
+    try {
+      const data = await api("/api/extrair", {
+        method: "POST",
+        body: JSON.stringify({ grupo_id: grupoSelecionado.id, grupo_nome: grupoSelecionado.nome }),
+      });
+      document.getElementById("stat-total").textContent = data.total;
+      document.getElementById("stat-humanos").textContent = data.humanos;
+      document.getElementById("stat-username").textContent = data.com_username;
+      document.getElementById("stat-telefone").textContent = data.com_telefone;
+      irParaPasso(5);
+    } catch (e) {
+      mostrarErro(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Passo 5: Ações ─────────────────────────────────────────────────────
+  async function criarGrupo() {
+    const nome = document.getElementById("nome-novo-grupo").value.trim();
+    if (!nome) { mostrarErro("Digite o nome do grupo."); return; }
+
+    document.getElementById("btn-confirmar-grupo").disabled = true;
+    document.getElementById("btn-confirmar-grupo").innerHTML =
+      `<span class="spinner-border spinner-border-sm me-2"></span>Criando...`;
+
+    try {
+      const data = await api("/api/criar-grupo", {
+        method: "POST",
+        body: JSON.stringify({ nome }),
+      });
+      document.getElementById("modal-form-grupo").style.display = "none";
+      document.getElementById("modal-resultado-grupo").style.display = "block";
+      document.getElementById("modal-resultado-grupo").innerHTML = `
+        <div class="alert alert-success">
+          <i class="bi bi-check-circle me-2"></i>
+          <strong>Grupo criado com sucesso!</strong><br>
+          <span class="small">
+            ${data.adicionados} pessoa(s) adicionadas.
+            ${data.falhas > 0 ? `${data.falhas} não puderam ser adicionadas (privacidade).` : ""}
+          </span>
+        </div>`;
+      document.getElementById("btn-confirmar-grupo").style.display = "none";
+    } catch (e) {
+      mostrarErro(e.message);
+      document.getElementById("btn-confirmar-grupo").disabled = false;
+      document.getElementById("btn-confirmar-grupo").innerHTML =
+        `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
+    }
+  }
+
+  function baixarJson() {
+    window.location.href = "/api/download";
+  }
+
+  function irParaWhatsApp() {
+    irParaPasso("passo-whatsapp");
+  }
+
+  // ── WhatsApp links ─────────────────────────────────────────────────────
+  async function carregarLinksWhatsApp() {
+    const linkGrupo = document.getElementById("link-grupo-wpp").value.trim();
+    setLoading(true, "Gerando links...");
+    try {
+      const url = "/api/links-whatsapp" + (linkGrupo ? `?link_grupo=${encodeURIComponent(linkGrupo)}` : "");
+      const data = await api(url);
+      const container = document.getElementById("lista-links-wpp");
+      document.getElementById("aviso-wpp").style.display = "block";
+
+      if (!data.links.length) {
+        container.innerHTML = `<div class="alert alert-warning small mt-2">
+          Nenhum membro com número de telefone visível foi encontrado.<br><br>
+          <strong>Alternativa:</strong> Gere um link de convite no seu grupo do WhatsApp
+          (Grupo → ⋮ → Convidar via link) e compartilhe diretamente no grupo do Telegram.
+        </div>`;
+      } else {
+        container.innerHTML = `<p class="text-secondary small mb-2">${data.links.length} contato(s) com telefone:</p>` +
+          data.links.map(l => `
+            <div class="link-item">
+              <div class="fw-semibold small">${l.nome}</div>
+              <div class="text-secondary" style="font-size:.75rem">${l.telefone}</div>
+              <a href="${l.link}" target="_blank" class="small">
+                <i class="bi bi-whatsapp me-1"></i>Abrir conversa no WhatsApp
+              </a>
+            </div>`).join("");
+      }
+    } catch (e) {
+      mostrarErro(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Permitir Enter nos campos de texto
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("api_hash").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("phone").focus(); });
+    document.getElementById("phone").addEventListener("keydown", e => { if (e.key === "Enter") conectar(); });
+    document.getElementById("codigo").addEventListener("keydown", e => { if (e.key === "Enter") verificarCodigo(); });
+    document.getElementById("senha2fa").addEventListener("keydown", e => { if (e.key === "Enter") verificarSenha2fa(); });
+    document.getElementById("nome-novo-grupo").addEventListener("keydown", e => { if (e.key === "Enter") criarGrupo(); });
+
+    // Resetar modal ao fechar
+    document.getElementById("modalCriarGrupo").addEventListener("hidden.bs.modal", () => {
+      document.getElementById("modal-form-grupo").style.display = "block";
+      document.getElementById("modal-resultado-grupo").style.display = "none";
+      document.getElementById("btn-confirmar-grupo").disabled = false;
+      document.getElementById("btn-confirmar-grupo").style.display = "inline-block";
+      document.getElementById("btn-confirmar-grupo").innerHTML =
+        `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
+    });
+
+    irParaPasso(1);
+  });
+</script>
+</body>
+</html>
