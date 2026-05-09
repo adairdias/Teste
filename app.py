@@ -164,17 +164,20 @@ async def _criar_grupo_telegram(nome, membros):
     client = estado["client"]
     result = await client(CreateChannelRequest(title=nome, about="", megagroup=True))
     canal = result.chats[0]
+    print(f"\n[+] Grupo '{nome}' criado. Adicionando {len(membros)} membros...")
 
-    # Monta entidades usando ID+access_hash (funciona mesmo sem @username)
+    # Monta entidades usando ID+access_hash
     entidades_todas = []
     for m in membros:
         try:
-            if m.get("access_hash") is not None:  # 0 é válido, não usar bool()
+            if m.get("access_hash") is not None:
                 entidades_todas.append(InputPeerUser(m["id"], m["access_hash"]))
             elif m.get("username"):
                 entidades_todas.append(await client.get_entity(m["username"]))
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  [!] Entidade não resolvida id={m['id']}: {e}")
+
+    print(f"[+] Entidades prontas: {len(entidades_todas)}")
 
     adicionados, falhas = 0, 0
     for i in range(0, len(entidades_todas), 10):
@@ -182,20 +185,27 @@ async def _criar_grupo_telegram(nome, membros):
         try:
             await client(InviteToChannelRequest(canal, lote))
             adicionados += len(lote)
+            print(f"  [ok] Adicionados: {adicionados}/{len(entidades_todas)}")
         except FloodWaitError as e:
+            print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
             try:
                 await client(InviteToChannelRequest(canal, lote))
                 adicionados += len(lote)
-            except Exception:
+                print(f"  [ok] Adicionados após espera: {adicionados}")
+            except Exception as e2:
                 falhas += len(lote)
-        except (UserPrivacyRestrictedError, UserNotMutualContactError):
+                print(f"  [!] Falha no lote após espera: {e2}")
+        except (UserPrivacyRestrictedError, UserNotMutualContactError) as e:
             falhas += len(lote)
-        except Exception:
+            print(f"  [privacidade] {len(lote)} bloqueados: {e}")
+        except Exception as e:
             falhas += len(lote)
+            print(f"  [!] Erro no lote: {type(e).__name__}: {e}")
 
         await asyncio.sleep(3)
 
+    print(f"\n[=] Concluído: {adicionados} adicionados, {falhas} falhas.\n")
     return adicionados, falhas
 
 
