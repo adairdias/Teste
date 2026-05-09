@@ -36,9 +36,7 @@
       border-radius: 8px; padding: 12px 16px; cursor: pointer;
       margin-bottom: 8px; transition: border-color .2s;
     }
-    .grupo-item:hover, .grupo-item.selecionado {
-      border-color: #58a6ff; background: #161b22;
-    }
+    .grupo-item:hover, .grupo-item.selecionado { border-color: #58a6ff; background: #161b22; }
     .grupo-item.selecionado { border-color: #238636; }
     .link-item {
       background: #0d1117; border: 1px solid #30363d;
@@ -46,7 +44,7 @@
     }
     .loading-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(13,17,23,.85); z-index: 9999;
+      background: rgba(13,17,23,.9); z-index: 9999;
       flex-direction: column; align-items: center; justify-content: center;
     }
     .loading-overlay.ativo { display: flex; }
@@ -56,6 +54,7 @@
     .section-title { color: #8b949e; font-size: 0.8rem; text-transform: uppercase;
       letter-spacing: .08em; margin-bottom: 12px; }
     #passo-whatsapp .link-item a { color: #25d366; word-break: break-all; }
+    .logo-icon { font-size: 2.5rem; color: #58a6ff; }
   </style>
 </head>
 <body>
@@ -67,38 +66,23 @@
 
 <div class="container pb-5" style="max-width:480px">
 
-  <!-- ── Passo 1: Credenciais ───────────────────────────────────────────── -->
-  <div id="passo-1" class="step ativo">
-    <div class="card p-4">
-      <h5 class="mb-1">Configurar acesso</h5>
-      <p class="text-secondary small mb-3">
-        Você precisa das credenciais da API do Telegram.
-        <a href="#" onclick="mostrarAjudaApi(); return false;" class="text-primary">Como obter?</a>
+  <!-- ── Passo 1: Telefone ──────────────────────────────────────────────── -->
+  <div id="passo-1" class="step">
+    <div class="card p-4 text-center">
+      <div class="logo-icon mb-3"><i class="bi bi-send-fill"></i></div>
+      <h5 class="mb-1">Bem-vindo!</h5>
+      <p class="text-secondary small mb-4">
+        Digite seu número do Telegram para entrar.<br>
+        Você só precisa fazer isso <strong>uma vez</strong>.
       </p>
-
-      <div id="ajuda-api" class="alert alert-secondary small mb-3" style="display:none">
-        <strong>Como obter API_ID e API_HASH:</strong><br>
-        1. Abra <strong>my.telegram.org</strong> no navegador<br>
-        2. Faça login com seu número<br>
-        3. Clique em <em>"API development tools"</em><br>
-        4. Preencha o formulário (qualquer nome de app)<br>
-        5. Copie o <strong>App api_id</strong> e <strong>App api_hash</strong>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label small">API ID <span class="text-danger">*</span></label>
-        <input id="api_id" type="number" class="form-control" placeholder="Ex: 1234567"/>
-      </div>
-      <div class="mb-3">
-        <label class="form-label small">API Hash <span class="text-danger">*</span></label>
-        <input id="api_hash" type="text" class="form-control" placeholder="Ex: abc123def456..."/>
-      </div>
-      <div class="mb-4">
+      <div class="mb-4 text-start">
         <label class="form-label small">Seu número (com DDI) <span class="text-danger">*</span></label>
-        <input id="phone" type="tel" class="form-control" placeholder="+5511999999999"/>
+        <input id="phone" type="tel" class="form-control form-control-lg"
+               placeholder="+5511999999999"/>
+        <div class="form-text text-secondary">Ex: +55 11 99999-9999</div>
       </div>
-      <button class="btn btn-primary w-100" onclick="conectar()">
-        <i class="bi bi-box-arrow-in-right me-2"></i>Conectar ao Telegram
+      <button class="btn btn-primary w-100 btn-lg" onclick="conectar()">
+        <i class="bi bi-box-arrow-in-right me-2"></i>Entrar no Telegram
       </button>
     </div>
   </div>
@@ -157,11 +141,12 @@
   <div id="passo-5" class="step">
     <div class="card p-4 mb-3">
       <h5 class="mb-3">Extração concluída <i class="bi bi-check-circle-fill text-success"></i></h5>
+
       <div id="aviso-parcial" class="alert alert-warning small mb-3" style="display:none">
         <i class="bi bi-exclamation-triangle me-1"></i>
         <strong>Lista parcial:</strong> você não é admin deste grupo, então o Telegram
         limita a visualização. Foram extraídos os membros visíveis via busca.
-        Para a lista completa, você precisaria ser administrador do grupo.
+        Para a lista completa você precisaria ser administrador do grupo.
       </div>
 
       <div class="row g-2 mb-3">
@@ -203,6 +188,9 @@
         <button class="btn btn-outline-light" onclick="baixarJson()">
           <i class="bi bi-file-earmark-arrow-down me-2"></i>Baixar lista (JSON)
         </button>
+        <button class="btn btn-outline-light" onclick="irParaPasso(4)">
+          <i class="bi bi-arrow-repeat me-2"></i>Extrair outro grupo
+        </button>
       </div>
     </div>
   </div>
@@ -215,14 +203,14 @@
       </button>
       <h5 class="mb-1">Links WhatsApp</h5>
       <p class="text-secondary small mb-3">
-        Contatos com telefone visível no Telegram. Cole o link do seu grupo WhatsApp abaixo para incluir no convite.
+        Contatos com telefone visível no Telegram. Cole o link do seu grupo WhatsApp abaixo.
       </p>
       <div class="mb-3">
         <label class="form-label small">Link do grupo WhatsApp (opcional)</label>
         <input id="link-grupo-wpp" type="url" class="form-control"
                placeholder="https://chat.whatsapp.com/..."/>
         <div class="form-text text-secondary">
-          Gere este link no WhatsApp: Grupo → Convidar via link
+          Gere no WhatsApp: Grupo → ⋮ → Convidar via link
         </div>
       </div>
       <button class="btn btn-success w-100 mb-3" onclick="carregarLinksWhatsApp()">
@@ -232,8 +220,7 @@
       <div id="aviso-wpp" class="alert alert-warning small" style="display:none">
         <i class="bi bi-exclamation-triangle me-1"></i>
         Apenas membros que tornaram o telefone público no Telegram aparecem aqui.
-        Normalmente é uma minoria. Para os demais, compartilhe o link do grupo
-        diretamente no chat do Telegram.
+        Para os demais, compartilhe o link do grupo diretamente no chat do Telegram.
       </div>
 
       <div id="lista-links-wpp"></div>
@@ -294,18 +281,17 @@
   // ── Navegação de passos ────────────────────────────────────────────────
   const passos = ["passo-1","passo-2","passo-3","passo-4","passo-5","passo-whatsapp"];
   const labels = {
-    "passo-1": "Passo 1 — Credenciais",
-    "passo-2": "Passo 2 — Verificação",
-    "passo-3": "Passo 3 — Senha 2FA",
-    "passo-4": "Passo 4 — Selecionar grupo",
-    "passo-5": "Passo 5 — Resultados",
+    "passo-1": "Entrar",
+    "passo-2": "Verificação",
+    "passo-3": "Senha 2FA",
+    "passo-4": "Selecionar grupo",
+    "passo-5": "Resultados",
     "passo-whatsapp": "Links WhatsApp",
   };
 
   function irParaPasso(n) {
-    const id = passos[n - 1] || n;
+    const alvo = typeof n === "number" ? passos[n - 1] : n;
     passos.forEach(p => document.getElementById(p).classList.remove("ativo"));
-    const alvo = typeof n === "string" ? n : passos[n - 1];
     document.getElementById(alvo).classList.add("ativo");
     document.getElementById("info-passo").textContent = labels[alvo] || "";
     window.scrollTo(0, 0);
@@ -332,28 +318,40 @@
     return data;
   }
 
-  function mostrarAjudaApi() {
-    const el = document.getElementById("ajuda-api");
-    el.style.display = el.style.display === "none" ? "block" : "none";
+  // ── Verificação de sessão ao carregar ──────────────────────────────────
+  async function verificarSessao() {
+    setLoading(true, "Verificando sessão...");
+    try {
+      const data = await api("/api/status");
+      if (data.autorizado) {
+        // Sessão válida: vai direto para os grupos
+        await carregarGrupos();
+        irParaPasso(4);
+      } else {
+        // Pré-preenche o telefone se já foi usado antes
+        if (data.phone) {
+          document.getElementById("phone").value = data.phone;
+        }
+        irParaPasso(1);
+      }
+    } catch (e) {
+      irParaPasso(1);
+    } finally {
+      setLoading(false);
+    }
   }
 
   // ── Passo 1: Conectar ─────────────────────────────────────────────────
   async function conectar() {
-    const api_id = document.getElementById("api_id").value.trim();
-    const api_hash = document.getElementById("api_hash").value.trim();
     const phone = document.getElementById("phone").value.trim();
-    if (!api_id || !api_hash || !phone) {
-      mostrarErro("Preencha todos os campos.");
-      return;
-    }
+    if (!phone) { mostrarErro("Digite seu número de telefone."); return; }
     setLoading(true, "Conectando ao Telegram...");
     try {
       const data = await api("/api/conectar", {
         method: "POST",
-        body: JSON.stringify({ api_id, api_hash, phone }),
+        body: JSON.stringify({ phone }),
       });
       if (data.status === "autorizado") {
-        // Sessão já existente, vai direto para os grupos
         await carregarGrupos();
         irParaPasso(4);
       } else {
@@ -413,35 +411,32 @@
     const container = document.getElementById("lista-grupos");
     container.innerHTML = `<div class="text-center text-secondary py-3">
       <div class="spinner-border spinner-border-sm me-2"></div> Carregando grupos...</div>`;
-    try {
-      const data = await api("/api/grupos");
-      if (!data.grupos.length) {
-        container.innerHTML = `<p class="text-secondary text-center">Nenhum grupo encontrado.</p>`;
-        return;
-      }
-      container.innerHTML = data.grupos.map(g => `
-        <div class="grupo-item" onclick="selecionarGrupo(${g.id}, '${g.title.replace(/'/g,"\\'")}', this)">
-          <div class="d-flex justify-content-between align-items-center">
-            <strong>${g.title}</strong>
-            <span class="badge bg-secondary badge-tipo">${g.tipo}</span>
-          </div>
-        </div>`).join("");
-    } catch (e) {
-      container.innerHTML = `<p class="text-danger">${e.message}</p>`;
+    const data = await api("/api/grupos");
+    if (!data.grupos.length) {
+      container.innerHTML = `<p class="text-secondary text-center">Nenhum grupo encontrado.</p>`;
+      return;
     }
+    container.innerHTML = data.grupos.map(g => `
+      <div class="grupo-item" onclick="selecionarGrupo(${g.id}, '${g.title.replace(/'/g,"\\'")}', this)">
+        <div class="d-flex justify-content-between align-items-center">
+          <strong>${g.title}</strong>
+          <span class="badge bg-secondary badge-tipo">${g.tipo}</span>
+        </div>
+      </div>`).join("");
   }
 
   function selecionarGrupo(id, nome, el) {
     grupoSelecionado = { id, nome };
     document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("selecionado"));
     el.classList.add("selecionado");
-    document.getElementById("btn-extrair").disabled = false;
-    document.getElementById("btn-extrair").textContent = `Extrair membros de "${nome}"`;
+    const btn = document.getElementById("btn-extrair");
+    btn.disabled = false;
+    btn.innerHTML = `<i class="bi bi-download me-2"></i>Extrair membros de "${nome}"`;
   }
 
   async function extrair() {
     if (!grupoSelecionado) { mostrarErro("Selecione um grupo."); return; }
-    setLoading(true, `Extraindo membros... isso pode levar alguns minutos em grupos grandes.`);
+    setLoading(true, "Extraindo membros... isso pode levar alguns minutos em grupos grandes.");
     try {
       const data = await api("/api/extrair", {
         method: "POST",
@@ -465,9 +460,9 @@
     const nome = document.getElementById("nome-novo-grupo").value.trim();
     if (!nome) { mostrarErro("Digite o nome do grupo."); return; }
 
-    document.getElementById("btn-confirmar-grupo").disabled = true;
-    document.getElementById("btn-confirmar-grupo").innerHTML =
-      `<span class="spinner-border spinner-border-sm me-2"></span>Criando...`;
+    const btn = document.getElementById("btn-confirmar-grupo");
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Criando...`;
 
     try {
       const data = await api("/api/criar-grupo", {
@@ -485,22 +480,16 @@
             ${data.falhas > 0 ? `${data.falhas} não puderam ser adicionadas (privacidade).` : ""}
           </span>
         </div>`;
-      document.getElementById("btn-confirmar-grupo").style.display = "none";
+      btn.style.display = "none";
     } catch (e) {
       mostrarErro(e.message);
-      document.getElementById("btn-confirmar-grupo").disabled = false;
-      document.getElementById("btn-confirmar-grupo").innerHTML =
-        `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
+      btn.disabled = false;
+      btn.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
     }
   }
 
-  function baixarJson() {
-    window.location.href = "/api/download";
-  }
-
-  function irParaWhatsApp() {
-    irParaPasso("passo-whatsapp");
-  }
+  function baixarJson() { window.location.href = "/api/download"; }
+  function irParaWhatsApp() { irParaPasso("passo-whatsapp"); }
 
   // ── WhatsApp links ─────────────────────────────────────────────────────
   async function carregarLinksWhatsApp() {
@@ -514,9 +503,9 @@
 
       if (!data.links.length) {
         container.innerHTML = `<div class="alert alert-warning small mt-2">
-          Nenhum membro com número de telefone visível foi encontrado.<br><br>
+          Nenhum membro com telefone visível encontrado.<br><br>
           <strong>Alternativa:</strong> Gere um link de convite no seu grupo do WhatsApp
-          (Grupo → ⋮ → Convidar via link) e compartilhe diretamente no grupo do Telegram.
+          e compartilhe diretamente no Telegram.
         </div>`;
       } else {
         container.innerHTML = `<p class="text-secondary small mb-2">${data.links.length} contato(s) com telefone:</p>` +
@@ -536,25 +525,24 @@
     }
   }
 
-  // Permitir Enter nos campos de texto
+  // ── Atalhos de teclado ─────────────────────────────────────────────────
   document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("api_hash").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("phone").focus(); });
-    document.getElementById("phone").addEventListener("keydown", e => { if (e.key === "Enter") conectar(); });
-    document.getElementById("codigo").addEventListener("keydown", e => { if (e.key === "Enter") verificarCodigo(); });
-    document.getElementById("senha2fa").addEventListener("keydown", e => { if (e.key === "Enter") verificarSenha2fa(); });
+    document.getElementById("phone").addEventListener("keydown",   e => { if (e.key === "Enter") conectar(); });
+    document.getElementById("codigo").addEventListener("keydown",  e => { if (e.key === "Enter") verificarCodigo(); });
+    document.getElementById("senha2fa").addEventListener("keydown",e => { if (e.key === "Enter") verificarSenha2fa(); });
     document.getElementById("nome-novo-grupo").addEventListener("keydown", e => { if (e.key === "Enter") criarGrupo(); });
 
-    // Resetar modal ao fechar
     document.getElementById("modalCriarGrupo").addEventListener("hidden.bs.modal", () => {
       document.getElementById("modal-form-grupo").style.display = "block";
       document.getElementById("modal-resultado-grupo").style.display = "none";
-      document.getElementById("btn-confirmar-grupo").disabled = false;
-      document.getElementById("btn-confirmar-grupo").style.display = "inline-block";
-      document.getElementById("btn-confirmar-grupo").innerHTML =
-        `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
+      const btn = document.getElementById("btn-confirmar-grupo");
+      btn.disabled = false;
+      btn.style.display = "inline-block";
+      btn.innerHTML = `<i class="bi bi-plus-circle me-2"></i>Criar grupo`;
     });
 
-    irParaPasso(1);
+    // Verifica sessão ao abrir o app
+    verificarSessao();
   });
 </script>
 </body>

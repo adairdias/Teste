@@ -14,6 +14,11 @@ from telethon.errors import (
     ChatAdminRequiredError,
 )
 
+# ── Credenciais fixas ─────────────────────────────────────────────────────────
+API_ID   = 31023456
+API_HASH = "0bf170523afd121d8db330c98d508f79"
+PHONE_FILE = "telefone.txt"
+
 app = Flask(__name__)
 app.secret_key = "extrator-telegram-local"
 
@@ -34,18 +39,39 @@ estado = {
 }
 
 
+# ── Helpers de persistência ───────────────────────────────────────────────────
+
+def ler_telefone():
+    try:
+        with open(PHONE_FILE) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return ""
+
+def salvar_telefone(phone):
+    with open(PHONE_FILE, "w") as f:
+        f.write(phone)
+
+
 # ── Operações Telegram (async) ────────────────────────────────────────────────
 
-async def _conectar(api_id, api_hash, phone):
-    client = TelegramClient("sessao_local", api_id, api_hash)
-    await client.connect()
-    estado["client"] = client
-    estado["phone"] = phone
+async def _ensure_client():
+    """Garante que o cliente está conectado; retorna True se já autorizado."""
+    if estado["client"] is None:
+        client = TelegramClient("sessao_local", API_ID, API_HASH)
+        await client.connect()
+        estado["client"] = client
+        estado["phone"] = ler_telefone()
+    return await estado["client"].is_user_authorized()
 
-    if await client.is_user_authorized():
+
+async def _conectar(phone):
+    autorizado = await _ensure_client()
+    if autorizado:
         return "autorizado"
-
-    result = await client.send_code_request(phone)
+    estado["phone"] = phone
+    salvar_telefone(phone)
+    result = await estado["client"].send_code_request(phone)
     estado["phone_code_hash"] = result.phone_code_hash
     return "codigo_enviado"
 
@@ -101,7 +127,6 @@ async def _extrair(grupo_id):
         async for u in client.iter_participants(target):
             membros.append(_membro(u))
     except ChatAdminRequiredError:
-        # Não é admin: usa busca por letras/nomes (parcial, sem precisar de admin)
         modo_agressivo = True
         vistos = set()
         async for u in client.iter_participants(target, aggressive=True):
@@ -155,14 +180,24 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/api/status")
+def status():
+    """Verifica se já existe sessão válida. Chamado ao carregar a página."""
+    try:
+        autorizado = run(_ensure_client())
+        return jsonify({
+            "autorizado": autorizado,
+            "phone": ler_telefone(),
+        })
+    except Exception as e:
+        return jsonify({"autorizado": False, "phone": "", "erro": str(e)})
+
+
 @app.route("/api/conectar", methods=["POST"])
 def conectar():
-    data = request.json
+    phone = request.json.get("phone", "").strip()
     try:
-        api_id = int(data["api_id"])
-        api_hash = data["api_hash"].strip()
-        phone = data["phone"].strip()
-        status = run(_conectar(api_id, api_hash, phone))
+        status = run(_conectar(phone))
         return jsonify({"status": status})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
@@ -188,7 +223,7 @@ def senha_2fa():
     try:
         run(_senha_2fa(senha))
         return jsonify({"status": "ok"})
-    except Exception as e:
+    except Exception:
         return jsonify({"erro": "Senha incorreta."}), 400
 
 
