@@ -21,6 +21,7 @@ PHONE_FILE = "telefone.txt"
 
 app = Flask(__name__)
 app.secret_key = "extrator-telegram-local"
+app.json.ensure_ascii = True  # evita UnicodeEncodeError em headers HTTP
 
 # Background asyncio loop — Telethon vive aqui
 _loop = asyncio.new_event_loop()
@@ -168,7 +169,7 @@ async def _criar_grupo_telegram(nome, membros):
     entidades_todas = []
     for m in membros:
         try:
-            if m.get("access_hash"):
+            if m.get("access_hash") is not None:  # 0 é válido, não usar bool()
                 entidades_todas.append(InputPeerUser(m["id"], m["access_hash"]))
             elif m.get("username"):
                 entidades_todas.append(await client.get_entity(m["username"]))
@@ -316,7 +317,8 @@ def links_whatsapp():
 @app.route("/api/download")
 def download():
     membros = estado["membros"]
-    nome = estado["grupo_nome"].replace(" ", "_") or "membros"
+    # Remove emoji e chars não-ASCII do nome do arquivo (headers HTTP só aceitam latin-1)
+    nome = estado["grupo_nome"].encode("ascii", "ignore").decode("ascii").replace(" ", "_").strip("_") or "membros"
     conteudo = json.dumps(membros, ensure_ascii=False, indent=2)
     return Response(
         conteudo,
