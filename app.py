@@ -209,6 +209,68 @@ async def _criar_grupo_telegram(nome, membros):
     return adicionados, falhas
 
 
+async def _adicionar_em_existente(grupo_destino_id, membros):
+    from telethon.tl.types import InputPeerUser
+    client = estado["client"]
+
+    dialogs = await client.get_dialogs()
+    target = next((d.entity for d in dialogs if d.entity.id == grupo_destino_id), None)
+    if target is None:
+        raise ValueError("Grupo destino não encontrado")
+
+    # Descobre quem já está no grupo para não adicionar duplicatas
+    ids_existentes = set()
+    try:
+        async for u in client.iter_participants(target):
+            ids_existentes.add(u.id)
+    except Exception:
+        pass
+
+    novos = [m for m in membros if m["id"] not in ids_existentes]
+    pulados = len(membros) - len(novos)
+    print(f"\n[+] {pulados} já estão no grupo. {len(novos)} para adicionar.")
+
+    if not novos:
+        return 0, 0, pulados
+
+    entidades = []
+    for m in novos:
+        try:
+            if m.get("access_hash") is not None:
+                entidades.append(InputPeerUser(m["id"], m["access_hash"]))
+            elif m.get("username"):
+                entidades.append(await client.get_entity(m["username"]))
+        except Exception as e:
+            print(f"  [!] Entidade não resolvida: {e}")
+
+    adicionados, falhas = 0, 0
+    for i in range(0, len(entidades), 10):
+        lote = entidades[i:i + 10]
+        try:
+            await client(InviteToChannelRequest(target, lote))
+            adicionados += len(lote)
+            print(f"  [ok] Adicionados: {adicionados}/{len(entidades)}")
+        except FloodWaitError as e:
+            print(f"  [flood] Aguardando {e.seconds}s...")
+            await asyncio.sleep(e.seconds)
+            try:
+                await client(InviteToChannelRequest(target, lote))
+                adicionados += len(lote)
+            except Exception as e2:
+                falhas += len(lote)
+                print(f"  [!] Falha após espera: {e2}")
+        except (UserPrivacyRestrictedError, UserNotMutualContactError):
+            falhas += len(lote)
+            print(f"  [privacidade] {len(lote)} bloqueados")
+        except Exception as e:
+            falhas += len(lote)
+            print(f"  [!] Erro: {type(e).__name__}: {e}")
+
+        await asyncio.sleep(3)
+
+    print(f"[=] Concluído: {adicionados} adicionados, {falhas} falhas, {pulados} já estavam.\n")
+    return adicionados, falhas, pulados
+
 # ── Rotas Flask ───────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -303,6 +365,22 @@ def criar_grupo():
     try:
         adicionados, falhas = run(_criar_grupo_telegram(nome, membros), timeout=600)
         return jsonify({"adicionados": adicionados, "falhas": falhas})
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+@app.route("/api/adicionar-existente", methods=["POST"])
+def adicionar_existente():
+    grupo_id = request.json.get("grupo_id")
+    if not grupo_id:
+        return jsonify({"erro": "Selecione um grupo destino."}), 400
+
+    membros = [m for m in estado["membros"] if not m.get("bot")]
+    try:
+        adicionados, falhas, pulados = run(
+            _adicionar_em_existente(int(grupo_id), membros), timeout=600
+        )
+        return jsonify({"adicionados": adicionados, "falhas": falhas, "pulados": pulados})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
 

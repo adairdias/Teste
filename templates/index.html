@@ -163,21 +163,48 @@
 
 </div><!-- /container -->
 
-<!-- Modal criar grupo -->
+<!-- Modal criar/adicionar grupo -->
 <div id="modal-bg" class="modal-bg" onclick="if(event.target===this)fecharModal()">
   <div class="modal-box">
-    <div class="modal-title">Criar grupo no Telegram</div>
+    <div class="modal-title">Adicionar membros</div>
+
     <div id="modal-form">
-      <div class="alerta alerta-info" style="margin-bottom:12px">
-        Será criado um supergrupo e todos os membros extraídos serão adicionados (incluindo quem não tem @username).
+      <!-- Abas -->
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button id="aba-novo" onclick="setAba('novo')"
+          style="flex:1;padding:10px;border-radius:8px;border:none;background:#238636;color:#fff;font-weight:600;cursor:pointer">
+          Criar novo grupo
+        </button>
+        <button id="aba-existente" onclick="setAba('existente')"
+          style="flex:1;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;cursor:pointer">
+          Grupo existente
+        </button>
       </div>
-      <label>Nome do novo grupo</label>
-      <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+
+      <!-- Novo grupo -->
+      <div id="painel-novo">
+        <div class="alerta alerta-info" style="margin-bottom:12px">
+          Cria um supergrupo novo e adiciona todos os membros extraídos.
+        </div>
+        <label>Nome do novo grupo</label>
+        <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+      </div>
+
+      <!-- Grupo existente -->
+      <div id="painel-existente" style="display:none">
+        <div class="alerta alerta-info" style="margin-bottom:12px">
+          Adiciona só quem ainda <strong>não está</strong> no grupo selecionado. Útil para continuar amanhã.
+        </div>
+        <div id="lista-destino" style="max-height:220px;overflow-y:auto">
+          <div style="color:#8b949e;font-size:.9rem">Carregando grupos...</div>
+        </div>
+      </div>
     </div>
+
     <div id="modal-resultado" style="display:none"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
-      <button id="btn-criar" class="btn btn-green" onclick="criarGrupo()">Criar grupo</button>
+      <button id="btn-criar" class="btn btn-green" onclick="executarModal()">Criar grupo</button>
     </div>
   </div>
 </div>
@@ -235,15 +262,103 @@
   }
 
   // ── Modal ──────────────────────────────────────────────────────────────
+  let abaAtual = "novo";
+  let grupoDestino = null;
+
   function abrirModal() {
+    setAba("novo");
     document.getElementById("modal-bg").classList.add("show");
   }
+
   function fecharModal() {
     document.getElementById("modal-bg").classList.remove("show");
     document.getElementById("modal-form").style.display = "block";
     document.getElementById("modal-resultado").style.display = "none";
     const btn = document.getElementById("btn-criar");
-    btn.textContent = "Criar grupo"; btn.disabled = false; btn.style.display = "";
+    btn.disabled = false; btn.style.display = "";
+    setAba("novo");
+  }
+
+  async function setAba(aba) {
+    abaAtual = aba;
+    grupoDestino = null;
+    const btnNovo = document.getElementById("aba-novo");
+    const btnExist = document.getElementById("aba-existente");
+    const painelNovo = document.getElementById("painel-novo");
+    const painelExist = document.getElementById("painel-existente");
+    const btnCriar = document.getElementById("btn-criar");
+
+    if (aba === "novo") {
+      btnNovo.style.background = "#238636"; btnNovo.style.color = "#fff"; btnNovo.style.borderColor = "#238636";
+      btnExist.style.background = "transparent"; btnExist.style.color = "#8b949e"; btnExist.style.borderColor = "#30363d";
+      painelNovo.style.display = "block";
+      painelExist.style.display = "none";
+      btnCriar.textContent = "Criar grupo";
+    } else {
+      btnExist.style.background = "#238636"; btnExist.style.color = "#fff"; btnExist.style.borderColor = "#238636";
+      btnNovo.style.background = "transparent"; btnNovo.style.color = "#8b949e"; btnNovo.style.borderColor = "#30363d";
+      painelNovo.style.display = "none";
+      painelExist.style.display = "block";
+      btnCriar.textContent = "Adicionar membros";
+      btnCriar.disabled = true;
+      await carregarGruposDestino();
+    }
+  }
+
+  async function carregarGruposDestino() {
+    const c = document.getElementById("lista-destino");
+    c.innerHTML = '<div style="color:#8b949e;font-size:.9rem">Carregando...</div>';
+    try {
+      const d = await api("/api/grupos");
+      const soGrupos = d.grupos.filter(g => !g.canal);
+      if (!soGrupos.length) { c.innerHTML = '<div style="color:#8b949e">Nenhum grupo encontrado.</div>'; return; }
+      c.innerHTML = soGrupos.map(g =>
+        `<div class="grupo-item" style="margin-bottom:6px" onclick="selDestino(${g.id},'${g.title.replace(/'/g,"\\'")}',this)">
+           <strong>${g.title}</strong>
+           <span class="badge badge-${g.tipo.toLowerCase()}">${g.tipo}</span>
+         </div>`
+      ).join("");
+    } catch(e) { c.innerHTML = `<div style="color:#e3b341">${e.message}</div>`; }
+  }
+
+  function selDestino(id, nome, el) {
+    grupoDestino = { id, nome };
+    document.querySelectorAll("#lista-destino .grupo-item").forEach(i => i.classList.remove("sel"));
+    el.classList.add("sel");
+    document.getElementById("btn-criar").disabled = false;
+    document.getElementById("btn-criar").textContent = `Adicionar em "${nome}"`;
+  }
+
+  async function executarModal() {
+    const btn = document.getElementById("btn-criar");
+    btn.disabled = true;
+    if (abaAtual === "novo") {
+      const nome = document.getElementById("nome-novo-grupo").value.trim();
+      if (!nome) { erro("Digite o nome do grupo."); btn.disabled = false; return; }
+      btn.textContent = "Criando...";
+      try {
+        const d = await api("/api/criar-grupo", { nome });
+        mostrarResultadoModal(
+          `✅ Grupo criado! ${d.adicionados} adicionados.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}`
+        );
+      } catch(e) { erro(e.message); btn.disabled = false; btn.textContent = "Criar grupo"; }
+    } else {
+      if (!grupoDestino) { erro("Selecione um grupo."); btn.disabled = false; return; }
+      btn.textContent = "Adicionando...";
+      try {
+        const d = await api("/api/adicionar-existente", { grupo_id: grupoDestino.id });
+        mostrarResultadoModal(
+          `✅ Concluído! ${d.adicionados} adicionados, ${d.pulados} já estavam no grupo.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}`
+        );
+      } catch(e) { erro(e.message); btn.disabled = false; btn.textContent = `Adicionar em "${grupoDestino.nome}"`; }
+    }
+  }
+
+  function mostrarResultadoModal(msg) {
+    document.getElementById("modal-form").style.display = "none";
+    document.getElementById("modal-resultado").style.display = "block";
+    document.getElementById("modal-resultado").innerHTML = `<div class="alerta alerta-verde">${msg}</div>`;
+    document.getElementById("btn-criar").style.display = "none";
   }
 
   // ── Verificar sessão ao abrir ──────────────────────────────────────────
@@ -353,25 +468,6 @@
   }
 
   // ── Passo 5 ────────────────────────────────────────────────────────────
-  async function criarGrupo() {
-    const nome = document.getElementById("nome-novo-grupo").value.trim();
-    if (!nome) { erro("Digite o nome do grupo."); return; }
-    const btn = document.getElementById("btn-criar");
-    btn.textContent = "Criando..."; btn.disabled = true;
-    try {
-      const d = await api("/api/criar-grupo", { nome });
-      document.getElementById("modal-form").style.display = "none";
-      document.getElementById("modal-resultado").style.display = "block";
-      document.getElementById("modal-resultado").innerHTML =
-        `<div class="alerta alerta-verde">✅ <strong>Grupo criado!</strong><br>
-         ${d.adicionados} pessoa(s) adicionadas.${d.falhas>0?` ${d.falhas} não puderam (privacidade).`:""}</div>`;
-      btn.style.display = "none";
-    } catch(e) {
-      erro(e.message);
-      btn.textContent = "Criar grupo"; btn.disabled = false;
-    }
-  }
-
   function baixarJson() { window.location.href = "/api/download"; }
   function irParaWhatsApp() { irPara("passo-wpp"); }
 
