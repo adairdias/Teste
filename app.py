@@ -8,7 +8,7 @@ from telethon.tl.functions.channels import CreateChannelRequest, InviteToChannel
 from telethon.tl.functions.messages import GetDialogsRequest
 from telethon.tl.types import InputPeerEmpty, Channel, Chat
 from telethon.errors import (
-    SessionPasswordNeededError, FloodWaitError,
+    SessionPasswordNeededError, FloodWaitError, PeerFloodError,
     UserPrivacyRestrictedError, UserNotMutualContactError,
     PhoneCodeExpiredError, PhoneCodeInvalidError,
     ChatAdminRequiredError,
@@ -199,6 +199,10 @@ async def _criar_grupo_telegram(nome, membros):
             except Exception as e2:
                 falhas += 1
                 print(f"  [!] Falha após espera: {e2}")
+        except PeerFloodError:
+            flood_wait = -1
+            print(f"  [flood] PeerFloodError — limite diário atingido. Parando.")
+            break
         except (UserPrivacyRestrictedError, UserNotMutualContactError) as e:
             falhas += 1
             print(f"  [privacidade] bloqueado: {e}")
@@ -265,6 +269,10 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
             except Exception as e2:
                 falhas += 1
                 print(f"  [!] Falha após espera: {e2}")
+        except PeerFloodError:
+            flood_wait = -1
+            print(f"  [flood] PeerFloodError — limite diário atingido. Parando.")
+            break
         except (UserPrivacyRestrictedError, UserNotMutualContactError):
             falhas += 1
             print(f"  [privacidade] bloqueado")

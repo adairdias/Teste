@@ -291,11 +291,15 @@
   }
   function _textoFlood(segundos) {
     if (!segundos) return "";
+    const dica = `<br><br><strong>Dica:</strong> use o botão 🔗 "Gerar link de convite" e compartilhe o link para as pessoas entrarem sozinhas.`;
+    if (segundos === -1) {
+      return `<div class="alerta alerta-amarelo" style="margin-top:10px">⏳ <strong>Limite diário do Telegram atingido (PeerFlood).</strong><br>
+        Aguarde ~24h e tente novamente usando "Adicionar em grupo existente" — ele pula quem já foi adicionado.${dica}</div>`;
+    }
     const h = Math.floor(segundos / 3600), m = Math.floor((segundos % 3600) / 60);
     const tempo = h > 0 ? `${h}h ${m}min` : `${m}min`;
     return `<div class="alerta alerta-amarelo" style="margin-top:10px">⏳ <strong>Limite do Telegram atingido.</strong><br>
-      Tente novamente em <strong>${tempo}</strong> usando "Adicionar em grupo existente" — ele pula quem já foi adicionado.<br><br>
-      <strong>Dica:</strong> use o botão 🔗 "Gerar link de convite" e compartilhe o link para as pessoas entrarem sozinhas.</div>`;
+      Tente novamente em <strong>${tempo}</strong> usando "Adicionar em grupo existente" — ele pula quem já foi adicionado.${dica}</div>`;
   }
 
   async function criarNovoGrupo() {
