@@ -187,6 +187,10 @@ async def _criar_grupo_telegram(nome, membros):
             adicionados += len(lote)
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades_todas)}")
         except FloodWaitError as e:
+            if e.seconds > 60:
+                print(f"  [flood] Telegram pediu {e.seconds}s de espera — parando aqui.")
+                print(f"  [=] Tente novamente em {e.seconds // 3600}h{(e.seconds % 3600) // 60}min usando 'Adicionar em grupo existente'.")
+                break
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
             try:
@@ -251,6 +255,10 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
             adicionados += len(lote)
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades)}")
         except FloodWaitError as e:
+            if e.seconds > 60:
+                print(f"  [flood] Telegram pediu {e.seconds}s de espera — parando aqui.")
+                print(f"  [=] Tente novamente em {e.seconds // 3600}h{(e.seconds % 3600) // 60}min usando 'Adicionar em grupo existente'.")
+                break
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
             try:
