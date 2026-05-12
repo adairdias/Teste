@@ -137,10 +137,11 @@
         <div class="stat-box"><div class="stat-num wpp" id="stat-telefone">0</div><div class="stat-label">Com telefone</div></div>
       </div>
       <div class="section-label">O que fazer?</div>
-      <button class="btn btn-green" onclick="abrirModal()">👥 Criar novo grupo no Telegram</button>
-      <button class="btn btn-wpp" onclick="irParaWhatsApp()">🟢 Gerar links de convite WhatsApp</button>
+      <button class="btn btn-green" onclick="abrirModalNovo()">👥 Criar novo grupo no Telegram</button>
+      <button class="btn btn-outline" onclick="abrirModalExistente()" style="margin-top:6px">➕ Adicionar em grupo existente</button>
+      <button class="btn btn-wpp" onclick="irParaWhatsApp()" style="margin-top:6px">🟢 Gerar links de convite WhatsApp</button>
       <button class="btn btn-outline" onclick="baixarJson()">⬇️ Baixar lista (JSON)</button>
-      <button class="btn btn-outline" style="margin-top:6px" onclick="irPara(4)">🔄 Extrair outro grupo</button>
+      <button class="btn btn-outline" onclick="irPara(4)">🔄 Extrair outro grupo</button>
     </div>
   </div>
 
@@ -163,48 +164,41 @@
 
 </div><!-- /container -->
 
-<!-- Modal criar/adicionar grupo -->
-<div id="modal-bg" class="modal-bg" onclick="if(event.target===this)fecharModal()">
+<!-- Modal: Criar novo grupo -->
+<div id="modal-novo-bg" class="modal-bg" onclick="if(event.target===this)fecharModalNovo()">
   <div class="modal-box">
-    <div class="modal-title">Adicionar membros</div>
-
-    <div id="modal-form">
-      <!-- Abas -->
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <button id="aba-novo" onclick="setAba('novo')"
-          style="flex:1;padding:10px;border-radius:8px;border:none;background:#238636;color:#fff;font-weight:600;cursor:pointer">
-          Criar novo grupo
-        </button>
-        <button id="aba-existente" onclick="setAba('existente')"
-          style="flex:1;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;cursor:pointer">
-          Grupo existente
-        </button>
+    <div class="modal-title">Criar novo grupo</div>
+    <div id="modal-novo-form">
+      <div class="alerta alerta-info" style="margin-bottom:12px">
+        Cria um supergrupo novo e adiciona todos os membros extraídos.
       </div>
+      <label>Nome do novo grupo</label>
+      <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+    </div>
+    <div id="modal-novo-resultado" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModalNovo()">Cancelar</button>
+      <button id="btn-criar-novo" class="btn btn-green" onclick="criarNovoGrupo()">Criar grupo</button>
+    </div>
+  </div>
+</div>
 
-      <!-- Novo grupo -->
-      <div id="painel-novo">
-        <div class="alerta alerta-info" style="margin-bottom:12px">
-          Cria um supergrupo novo e adiciona todos os membros extraídos.
-        </div>
-        <label>Nome do novo grupo</label>
-        <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+<!-- Modal: Adicionar em grupo existente -->
+<div id="modal-exist-bg" class="modal-bg" onclick="if(event.target===this)fecharModalExist()">
+  <div class="modal-box">
+    <div class="modal-title">Adicionar em grupo existente</div>
+    <div id="modal-exist-form">
+      <div class="alerta alerta-info" style="margin-bottom:12px">
+        Adiciona só quem ainda <strong>não está</strong> no grupo — perfeito para continuar no dia seguinte.
       </div>
-
-      <!-- Grupo existente -->
-      <div id="painel-existente" style="display:none">
-        <div class="alerta alerta-info" style="margin-bottom:12px">
-          Adiciona só quem ainda <strong>não está</strong> no grupo selecionado. Útil para continuar amanhã.
-        </div>
-        <div id="lista-destino" style="max-height:220px;overflow-y:auto">
-          <div style="color:#8b949e;font-size:.9rem">Carregando grupos...</div>
-        </div>
+      <div id="lista-destino" style="max-height:240px;overflow-y:auto;margin-top:8px">
+        <div style="color:#8b949e;font-size:.9rem">Carregando...</div>
       </div>
     </div>
-
-    <div id="modal-resultado" style="display:none"></div>
+    <div id="modal-exist-resultado" style="display:none"></div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
-      <button id="btn-criar" class="btn btn-green" onclick="executarModal()">Criar grupo</button>
+      <button class="btn btn-outline" onclick="fecharModalExist()">Cancelar</button>
+      <button id="btn-adicionar-exist" class="btn btn-green" onclick="adicionarExistente()" disabled>Selecione um grupo</button>
     </div>
   </div>
 </div>
@@ -261,70 +255,51 @@
     return d;
   }
 
-  // ── Modal ──────────────────────────────────────────────────────────────
-  let abaAtual = "novo";
+  // ── Modal: Criar novo grupo ────────────────────────────────────────────
+  function abrirModalNovo() {
+    document.getElementById("modal-novo-form").style.display = "block";
+    document.getElementById("modal-novo-resultado").style.display = "none";
+    document.getElementById("nome-novo-grupo").value = "";
+    const btn = document.getElementById("btn-criar-novo");
+    btn.textContent = "Criar grupo"; btn.disabled = false; btn.style.display = "";
+    document.getElementById("modal-novo-bg").classList.add("show");
+  }
+  function fecharModalNovo() {
+    document.getElementById("modal-novo-bg").classList.remove("show");
+  }
+  async function criarNovoGrupo() {
+    const nome = document.getElementById("nome-novo-grupo").value.trim();
+    if (!nome) { erro("Digite o nome do grupo."); return; }
+    const btn = document.getElementById("btn-criar-novo");
+    btn.textContent = "Criando..."; btn.disabled = true;
+    try {
+      const d = await api("/api/criar-grupo", { nome });
+      document.getElementById("modal-novo-form").style.display = "none";
+      document.getElementById("modal-novo-resultado").style.display = "block";
+      document.getElementById("modal-novo-resultado").innerHTML =
+        `<div class="alerta alerta-verde">✅ Grupo criado!<br>${d.adicionados} adicionados.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>`;
+      btn.style.display = "none";
+    } catch(e) { erro(e.message); btn.textContent = "Criar grupo"; btn.disabled = false; }
+  }
+
+  // ── Modal: Adicionar em grupo existente ────────────────────────────────
   let grupoDestino = null;
 
-  function abrirModal() {
-    // Reseta para aba "novo" sem chamar async setAba
-    abaAtual = "novo";
+  async function abrirModalExistente() {
     grupoDestino = null;
-    document.getElementById("painel-novo").style.display = "block";
-    document.getElementById("painel-existente").style.display = "none";
-    document.getElementById("btn-criar").textContent = "Criar grupo";
-    document.getElementById("btn-criar").disabled = false;
-    document.getElementById("btn-criar").style.display = "";
-    document.getElementById("modal-form").style.display = "block";
-    document.getElementById("modal-resultado").style.display = "none";
-    // Estilo das abas
-    document.getElementById("aba-novo").style.cssText = "flex:1;padding:10px;border-radius:8px;border:none;background:#238636;color:#fff;font-weight:600;cursor:pointer";
-    document.getElementById("aba-existente").style.cssText = "flex:1;padding:10px;border-radius:8px;border:1px solid #30363d;background:transparent;color:#8b949e;cursor:pointer";
-    document.getElementById("modal-bg").classList.add("show");
-  }
-
-  function fecharModal() {
-    document.getElementById("modal-bg").classList.remove("show");
-    document.getElementById("modal-form").style.display = "block";
-    document.getElementById("modal-resultado").style.display = "none";
-    const btn = document.getElementById("btn-criar");
-    btn.disabled = false; btn.style.display = "";
-    setAba("novo");
-  }
-
-  async function setAba(aba) {
-    abaAtual = aba;
-    grupoDestino = null;
-    const btnNovo = document.getElementById("aba-novo");
-    const btnExist = document.getElementById("aba-existente");
-    const painelNovo = document.getElementById("painel-novo");
-    const painelExist = document.getElementById("painel-existente");
-    const btnCriar = document.getElementById("btn-criar");
-
-    if (aba === "novo") {
-      btnNovo.style.background = "#238636"; btnNovo.style.color = "#fff"; btnNovo.style.borderColor = "#238636";
-      btnExist.style.background = "transparent"; btnExist.style.color = "#8b949e"; btnExist.style.borderColor = "#30363d";
-      painelNovo.style.display = "block";
-      painelExist.style.display = "none";
-      btnCriar.textContent = "Criar grupo";
-    } else {
-      btnExist.style.background = "#238636"; btnExist.style.color = "#fff"; btnExist.style.borderColor = "#238636";
-      btnNovo.style.background = "transparent"; btnNovo.style.color = "#8b949e"; btnNovo.style.borderColor = "#30363d";
-      painelNovo.style.display = "none";
-      painelExist.style.display = "block";
-      btnCriar.textContent = "Adicionar membros";
-      btnCriar.disabled = true;
-      await carregarGruposDestino();
-    }
-  }
-
-  async function carregarGruposDestino() {
+    document.getElementById("modal-exist-form").style.display = "block";
+    document.getElementById("modal-exist-resultado").style.display = "none";
+    const btn = document.getElementById("btn-adicionar-exist");
+    btn.textContent = "Selecione um grupo"; btn.disabled = true; btn.style.display = "";
+    document.getElementById("modal-exist-bg").classList.add("show");
+    // Carrega lista de grupos
     const c = document.getElementById("lista-destino");
     c.innerHTML = '<div style="color:#8b949e;font-size:.9rem">Carregando...</div>';
     try {
       const d = await api("/api/grupos");
-      const soGrupos = d.grupos.filter(g => !g.canal);
-      if (!soGrupos.length) { c.innerHTML = '<div style="color:#8b949e">Nenhum grupo encontrado.</div>'; return; }
-      c.innerHTML = soGrupos.map(g =>
+      const lista = d.grupos.filter(g => !g.canal);
+      if (!lista.length) { c.innerHTML = '<div style="color:#8b949e">Nenhum grupo encontrado.</div>'; return; }
+      c.innerHTML = lista.map(g =>
         `<div class="grupo-item" style="margin-bottom:6px" onclick="selDestino(${g.id},'${g.title.replace(/'/g,"\\'")}',this)">
            <strong>${g.title}</strong>
            <span class="badge badge-${g.tipo.toLowerCase()}">${g.tipo}</span>
@@ -332,45 +307,29 @@
       ).join("");
     } catch(e) { c.innerHTML = `<div style="color:#e3b341">${e.message}</div>`; }
   }
-
+  function fecharModalExist() {
+    document.getElementById("modal-exist-bg").classList.remove("show");
+  }
   function selDestino(id, nome, el) {
     grupoDestino = { id, nome };
     document.querySelectorAll("#lista-destino .grupo-item").forEach(i => i.classList.remove("sel"));
     el.classList.add("sel");
-    document.getElementById("btn-criar").disabled = false;
-    document.getElementById("btn-criar").textContent = `Adicionar em "${nome}"`;
+    const btn = document.getElementById("btn-adicionar-exist");
+    btn.disabled = false;
+    btn.textContent = `Adicionar em "${nome}"`;
   }
-
-  async function executarModal() {
-    const btn = document.getElementById("btn-criar");
-    btn.disabled = true;
-    if (abaAtual === "novo") {
-      const nome = document.getElementById("nome-novo-grupo").value.trim();
-      if (!nome) { erro("Digite o nome do grupo."); btn.disabled = false; return; }
-      btn.textContent = "Criando...";
-      try {
-        const d = await api("/api/criar-grupo", { nome });
-        mostrarResultadoModal(
-          `✅ Grupo criado! ${d.adicionados} adicionados.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}`
-        );
-      } catch(e) { erro(e.message); btn.disabled = false; btn.textContent = "Criar grupo"; }
-    } else {
-      if (!grupoDestino) { erro("Selecione um grupo."); btn.disabled = false; return; }
-      btn.textContent = "Adicionando...";
-      try {
-        const d = await api("/api/adicionar-existente", { grupo_id: grupoDestino.id });
-        mostrarResultadoModal(
-          `✅ Concluído! ${d.adicionados} adicionados, ${d.pulados} já estavam no grupo.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}`
-        );
-      } catch(e) { erro(e.message); btn.disabled = false; btn.textContent = `Adicionar em "${grupoDestino.nome}"`; }
-    }
-  }
-
-  function mostrarResultadoModal(msg) {
-    document.getElementById("modal-form").style.display = "none";
-    document.getElementById("modal-resultado").style.display = "block";
-    document.getElementById("modal-resultado").innerHTML = `<div class="alerta alerta-verde">${msg}</div>`;
-    document.getElementById("btn-criar").style.display = "none";
+  async function adicionarExistente() {
+    if (!grupoDestino) { erro("Selecione um grupo."); return; }
+    const btn = document.getElementById("btn-adicionar-exist");
+    btn.textContent = "Adicionando..."; btn.disabled = true;
+    try {
+      const d = await api("/api/adicionar-existente", { grupo_id: grupoDestino.id });
+      document.getElementById("modal-exist-form").style.display = "none";
+      document.getElementById("modal-exist-resultado").style.display = "block";
+      document.getElementById("modal-exist-resultado").innerHTML =
+        `<div class="alerta alerta-verde">✅ Concluído!<br>${d.adicionados} adicionados, ${d.pulados} já estavam.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>`;
+      btn.style.display = "none";
+    } catch(e) { erro(e.message); btn.textContent = `Adicionar em "${grupoDestino.nome}"`; btn.disabled = false; }
   }
 
   // ── Verificar sessão ao abrir ──────────────────────────────────────────
