@@ -180,11 +180,10 @@ async def _criar_grupo_telegram(nome, membros):
     print(f"[+] Entidades prontas: {len(entidades_todas)}")
 
     adicionados, falhas = 0, 0
-    for i in range(0, len(entidades_todas), 10):
-        lote = entidades_todas[i: i + 10]
+    for idx, entidade in enumerate(entidades_todas):
         try:
-            await client(InviteToChannelRequest(canal, lote))
-            adicionados += len(lote)
+            await client(InviteToChannelRequest(canal, [entidade]))
+            adicionados += 1
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades_todas)}")
         except FloodWaitError as e:
             if e.seconds > 60:
@@ -194,20 +193,20 @@ async def _criar_grupo_telegram(nome, membros):
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
             try:
-                await client(InviteToChannelRequest(canal, lote))
-                adicionados += len(lote)
-                print(f"  [ok] Adicionados após espera: {adicionados}")
+                await client(InviteToChannelRequest(canal, [entidade]))
+                adicionados += 1
+                print(f"  [ok] Adicionado após espera: {adicionados}")
             except Exception as e2:
-                falhas += len(lote)
-                print(f"  [!] Falha no lote após espera: {e2}")
+                falhas += 1
+                print(f"  [!] Falha após espera: {e2}")
         except (UserPrivacyRestrictedError, UserNotMutualContactError) as e:
-            falhas += len(lote)
-            print(f"  [privacidade] {len(lote)} bloqueados: {e}")
+            falhas += 1
+            print(f"  [privacidade] bloqueado: {e}")
         except Exception as e:
-            falhas += len(lote)
-            print(f"  [!] Erro no lote: {type(e).__name__}: {e}")
+            falhas += 1
+            print(f"  [!] Erro: {type(e).__name__}: {e}")
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(15)
 
     print(f"\n[=] Concluído: {adicionados} adicionados, {falhas} falhas.\n")
     return adicionados, falhas
@@ -248,11 +247,10 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
             print(f"  [!] Entidade não resolvida: {e}")
 
     adicionados, falhas = 0, 0
-    for i in range(0, len(entidades), 10):
-        lote = entidades[i:i + 10]
+    for idx, entidade in enumerate(entidades):
         try:
-            await client(InviteToChannelRequest(target, lote))
-            adicionados += len(lote)
+            await client(InviteToChannelRequest(target, [entidade]))
+            adicionados += 1
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades)}")
         except FloodWaitError as e:
             if e.seconds > 60:
@@ -262,19 +260,19 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
             try:
-                await client(InviteToChannelRequest(target, lote))
-                adicionados += len(lote)
+                await client(InviteToChannelRequest(target, [entidade]))
+                adicionados += 1
             except Exception as e2:
-                falhas += len(lote)
+                falhas += 1
                 print(f"  [!] Falha após espera: {e2}")
         except (UserPrivacyRestrictedError, UserNotMutualContactError):
-            falhas += len(lote)
-            print(f"  [privacidade] {len(lote)} bloqueados")
+            falhas += 1
+            print(f"  [privacidade] bloqueado")
         except Exception as e:
-            falhas += len(lote)
+            falhas += 1
             print(f"  [!] Erro: {type(e).__name__}: {e}")
 
-        await asyncio.sleep(3)
+        await asyncio.sleep(15)
 
     print(f"[=] Concluído: {adicionados} adicionados, {falhas} falhas, {pulados} já estavam.\n")
     return adicionados, falhas, pulados
