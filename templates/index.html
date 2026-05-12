@@ -139,6 +139,7 @@
       <div class="section-label">O que fazer?</div>
       <button class="btn btn-green" onclick="abrirModalNovo()">👥 Criar novo grupo no Telegram</button>
       <button class="btn btn-outline" onclick="abrirModalExistente()" style="margin-top:6px">➕ Adicionar em grupo existente</button>
+      <button class="btn btn-blue" onclick="abrirModalLinkConvite()" style="margin-top:6px">🔗 Gerar link de convite do grupo</button>
       <button class="btn btn-wpp" onclick="irParaWhatsApp()" style="margin-top:6px">🟢 Gerar links de convite WhatsApp</button>
       <button class="btn btn-outline" onclick="baixarJson()">⬇️ Baixar lista (JSON)</button>
       <button class="btn btn-outline" onclick="irPara(4)">🔄 Extrair outro grupo</button>
@@ -199,6 +200,27 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharModalExist()">Cancelar</button>
       <button id="btn-adicionar-exist" class="btn btn-green" onclick="adicionarExistente()" disabled>Selecione um grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Link de convite -->
+<div id="modal-link-bg" class="modal-bg" onclick="if(event.target===this)fecharModalLink()">
+  <div class="modal-box">
+    <div class="modal-title">🔗 Link de convite do grupo</div>
+    <div id="modal-link-form">
+      <div class="alerta alerta-info" style="margin-bottom:12px">
+        Gera um link permanente para o grupo. Você pode compartilhar no WhatsApp, Instagram, etc.<br><br>
+        <strong>Qualquer pessoa com o link entra sozinha — sem precisar ser adicionada.</strong>
+      </div>
+      <div id="lista-link-grupos" style="max-height:240px;overflow-y:auto;margin-top:8px">
+        <div style="color:#8b949e;font-size:.9rem">Carregando...</div>
+      </div>
+    </div>
+    <div id="modal-link-resultado" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModalLink()">Fechar</button>
+      <button id="btn-gerar-link" class="btn btn-blue" onclick="gerarLinkConvite()" disabled>Selecione um grupo</button>
     </div>
   </div>
 </div>
@@ -267,6 +289,15 @@
   function fecharModalNovo() {
     document.getElementById("modal-novo-bg").classList.remove("show");
   }
+  function _textoFlood(segundos) {
+    if (!segundos) return "";
+    const h = Math.floor(segundos / 3600), m = Math.floor((segundos % 3600) / 60);
+    const tempo = h > 0 ? `${h}h ${m}min` : `${m}min`;
+    return `<div class="alerta alerta-amarelo" style="margin-top:10px">⏳ <strong>Limite do Telegram atingido.</strong><br>
+      Tente novamente em <strong>${tempo}</strong> usando "Adicionar em grupo existente" — ele pula quem já foi adicionado.<br><br>
+      <strong>Dica:</strong> use o botão 🔗 "Gerar link de convite" e compartilhe o link para as pessoas entrarem sozinhas.</div>`;
+  }
+
   async function criarNovoGrupo() {
     const nome = document.getElementById("nome-novo-grupo").value.trim();
     if (!nome) { erro("Digite o nome do grupo."); return; }
@@ -277,7 +308,8 @@
       document.getElementById("modal-novo-form").style.display = "none";
       document.getElementById("modal-novo-resultado").style.display = "block";
       document.getElementById("modal-novo-resultado").innerHTML =
-        `<div class="alerta alerta-verde">✅ Grupo criado!<br>${d.adicionados} adicionados.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>`;
+        `<div class="alerta alerta-verde">✅ Grupo criado!<br>${d.adicionados} adicionados.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>` +
+        _textoFlood(d.flood_wait);
       btn.style.display = "none";
     } catch(e) { erro(e.message); btn.textContent = "Criar grupo"; btn.disabled = false; }
   }
@@ -326,8 +358,10 @@
       const d = await api("/api/adicionar-existente", { grupo_id: grupoDestino.id });
       document.getElementById("modal-exist-form").style.display = "none";
       document.getElementById("modal-exist-resultado").style.display = "block";
-      document.getElementById("modal-exist-resultado").innerHTML =
-        `<div class="alerta alerta-verde">✅ Concluído!<br>${d.adicionados} adicionados, ${d.pulados} já estavam.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>`;
+      const ok = d.adicionados > 0
+        ? `<div class="alerta alerta-verde">✅ Concluído!<br>${d.adicionados} adicionados, ${d.pulados} já estavam.${d.falhas > 0 ? ` ${d.falhas} não puderam.` : ""}</div>`
+        : `<div class="alerta alerta-amarelo">⚠️ 0 adicionados, ${d.pulados} já estavam.</div>`;
+      document.getElementById("modal-exist-resultado").innerHTML = ok + _textoFlood(d.flood_wait);
       btn.style.display = "none";
     } catch(e) { erro(e.message); btn.textContent = `Adicionar em "${grupoDestino.nome}"`; btn.disabled = false; }
   }
@@ -463,6 +497,58 @@
       }
     } catch(e) { erro(e.message); }
     finally { load(false); }
+  }
+
+  // ── Modal: Link de convite ─────────────────────────────────────────────
+  let grupoLink = null;
+
+  async function abrirModalLinkConvite() {
+    grupoLink = null;
+    document.getElementById("modal-link-form").style.display = "block";
+    document.getElementById("modal-link-resultado").style.display = "none";
+    const btn = document.getElementById("btn-gerar-link");
+    btn.textContent = "Selecione um grupo"; btn.disabled = true; btn.style.display = "";
+    document.getElementById("modal-link-bg").classList.add("show");
+    const c = document.getElementById("lista-link-grupos");
+    c.innerHTML = '<div style="color:#8b949e;font-size:.9rem">Carregando...</div>';
+    try {
+      const d = await api("/api/grupos");
+      const lista = d.grupos.filter(g => !g.canal);
+      if (!lista.length) { c.innerHTML = '<div style="color:#8b949e">Nenhum grupo encontrado.</div>'; return; }
+      c.innerHTML = lista.map(g =>
+        `<div class="grupo-item" style="margin-bottom:6px" onclick="selGrupoLink(${g.id},'${g.title.replace(/'/g,"\\'")}',this)">
+           <strong>${g.title}</strong>
+           <span class="badge badge-${g.tipo.toLowerCase()}">${g.tipo}</span>
+         </div>`
+      ).join("");
+    } catch(e) { c.innerHTML = `<div style="color:#e3b341">${e.message}</div>`; }
+  }
+  function fecharModalLink() {
+    document.getElementById("modal-link-bg").classList.remove("show");
+  }
+  function selGrupoLink(id, nome, el) {
+    grupoLink = { id, nome };
+    document.querySelectorAll("#lista-link-grupos .grupo-item").forEach(i => i.classList.remove("sel"));
+    el.classList.add("sel");
+    const btn = document.getElementById("btn-gerar-link");
+    btn.disabled = false; btn.textContent = `Gerar link de "${nome}"`;
+  }
+  async function gerarLinkConvite() {
+    if (!grupoLink) { erro("Selecione um grupo."); return; }
+    const btn = document.getElementById("btn-gerar-link");
+    btn.textContent = "Gerando..."; btn.disabled = true;
+    try {
+      const d = await api("/api/link-convite", { grupo_id: grupoLink.id });
+      document.getElementById("modal-link-form").style.display = "none";
+      document.getElementById("modal-link-resultado").style.display = "block";
+      document.getElementById("modal-link-resultado").innerHTML =
+        `<div class="alerta alerta-verde" style="word-break:break-all">
+           ✅ Link gerado!<br><br>
+           <a href="${d.link}" target="_blank" style="color:#79c0ff;font-size:1rem">${d.link}</a><br><br>
+           <span style="font-size:.85rem;color:#8b949e">Compartilhe este link onde quiser. Qualquer pessoa que clicar entra no grupo automaticamente.</span>
+         </div>`;
+      btn.style.display = "none";
+    } catch(e) { erro(e.message); btn.textContent = `Gerar link de "${grupoLink.nome}"`; btn.disabled = false; }
   }
 
   // ── Enter nos campos ───────────────────────────────────────────────────

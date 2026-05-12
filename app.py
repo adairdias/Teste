@@ -179,7 +179,7 @@ async def _criar_grupo_telegram(nome, membros):
 
     print(f"[+] Entidades prontas: {len(entidades_todas)}")
 
-    adicionados, falhas = 0, 0
+    adicionados, falhas, flood_wait = 0, 0, 0
     for idx, entidade in enumerate(entidades_todas):
         try:
             await client(InviteToChannelRequest(canal, [entidade]))
@@ -187,8 +187,8 @@ async def _criar_grupo_telegram(nome, membros):
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades_todas)}")
         except FloodWaitError as e:
             if e.seconds > 60:
+                flood_wait = e.seconds
                 print(f"  [flood] Telegram pediu {e.seconds}s de espera — parando aqui.")
-                print(f"  [=] Tente novamente em {e.seconds // 3600}h{(e.seconds % 3600) // 60}min usando 'Adicionar em grupo existente'.")
                 break
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
@@ -209,7 +209,7 @@ async def _criar_grupo_telegram(nome, membros):
         await asyncio.sleep(15)
 
     print(f"\n[=] Concluído: {adicionados} adicionados, {falhas} falhas.\n")
-    return adicionados, falhas
+    return adicionados, falhas, flood_wait
 
 
 async def _adicionar_em_existente(grupo_destino_id, membros):
@@ -246,7 +246,7 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
         except Exception as e:
             print(f"  [!] Entidade não resolvida: {e}")
 
-    adicionados, falhas = 0, 0
+    adicionados, falhas, flood_wait = 0, 0, 0
     for idx, entidade in enumerate(entidades):
         try:
             await client(InviteToChannelRequest(target, [entidade]))
@@ -254,8 +254,8 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
             print(f"  [ok] Adicionados: {adicionados}/{len(entidades)}")
         except FloodWaitError as e:
             if e.seconds > 60:
+                flood_wait = e.seconds
                 print(f"  [flood] Telegram pediu {e.seconds}s de espera — parando aqui.")
-                print(f"  [=] Tente novamente em {e.seconds // 3600}h{(e.seconds % 3600) // 60}min usando 'Adicionar em grupo existente'.")
                 break
             print(f"  [flood] Aguardando {e.seconds}s...")
             await asyncio.sleep(e.seconds)
@@ -275,7 +275,17 @@ async def _adicionar_em_existente(grupo_destino_id, membros):
         await asyncio.sleep(15)
 
     print(f"[=] Concluído: {adicionados} adicionados, {falhas} falhas, {pulados} já estavam.\n")
-    return adicionados, falhas, pulados
+    return adicionados, falhas, pulados, flood_wait
+
+async def _gerar_link_convite(grupo_id):
+    client = estado["client"]
+    dialogs = await client.get_dialogs()
+    target = next((d.entity for d in dialogs if d.entity.id == grupo_id), None)
+    if target is None:
+        raise ValueError("Grupo não encontrado")
+    link = await client.export_chat_invite_link(target)
+    return link
+
 
 # ── Rotas Flask ───────────────────────────────────────────────────────────────
 
@@ -369,8 +379,8 @@ def criar_grupo():
 
     membros = [m for m in estado["membros"] if not m.get("bot")]
     try:
-        adicionados, falhas = run(_criar_grupo_telegram(nome, membros), timeout=600)
-        return jsonify({"adicionados": adicionados, "falhas": falhas})
+        adicionados, falhas, flood_wait = run(_criar_grupo_telegram(nome, membros), timeout=600)
+        return jsonify({"adicionados": adicionados, "falhas": falhas, "flood_wait": flood_wait})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
 
@@ -383,10 +393,22 @@ def adicionar_existente():
 
     membros = [m for m in estado["membros"] if not m.get("bot")]
     try:
-        adicionados, falhas, pulados = run(
+        adicionados, falhas, pulados, flood_wait = run(
             _adicionar_em_existente(int(grupo_id), membros), timeout=600
         )
-        return jsonify({"adicionados": adicionados, "falhas": falhas, "pulados": pulados})
+        return jsonify({"adicionados": adicionados, "falhas": falhas, "pulados": pulados, "flood_wait": flood_wait})
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 400
+
+
+@app.route("/api/link-convite", methods=["POST"])
+def link_convite():
+    grupo_id = request.json.get("grupo_id")
+    if not grupo_id:
+        return jsonify({"erro": "Selecione um grupo."}), 400
+    try:
+        link = run(_gerar_link_convite(int(grupo_id)))
+        return jsonify({"link": link})
     except Exception as e:
         return jsonify({"erro": str(e)}), 400
 
