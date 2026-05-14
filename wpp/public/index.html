@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Extrator WhatsApp</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <style>
+    body { background:#0d1117; color:#e6edf3; min-height:100vh; font-family:sans-serif; }
+    .navbar { background:#161b22; border-bottom:1px solid #30363d; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+    .card { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; margin-bottom:16px; }
+    input { width:100%; padding:12px; border-radius:8px; border:1px solid #30363d; background:#0d1117; color:#e6edf3; font-size:1rem; box-sizing:border-box; margin-bottom:4px; }
+    input:focus { outline:none; border-color:#25d366; box-shadow:0 0 0 3px rgba(37,211,102,.15); }
+    input::placeholder { color:#6e7681; }
+    .btn { width:100%; padding:13px; border-radius:8px; border:none; font-size:1rem; font-weight:600; cursor:pointer; margin-top:8px; }
+    .btn-wpp     { background:#25d366; color:#fff; }
+    .btn-wpp:active     { background:#20ba57; }
+    .btn-blue    { background:#1f6feb; color:#fff; }
+    .btn-blue:active    { background:#388bfd; }
+    .btn-outline { background:transparent; color:#e6edf3; border:1px solid #30363d; }
+    .btn-outline:active { background:#21262d; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    label { display:block; font-size:.85rem; color:#8b949e; margin-bottom:6px; margin-top:14px; }
+    .hint { font-size:.78rem; color:#6e7681; margin-top:4px; }
+    .step { display:none; }
+    .step.ativo { display:block; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:16px 0; }
+    .stat-box { background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:14px; text-align:center; }
+    .stat-num { font-size:2rem; font-weight:700; }
+    .stat-num.verde { color:#25d366; }
+    .stat-num.azul  { color:#58a6ff; }
+    .stat-label { font-size:.78rem; color:#8b949e; }
+    .grupo-item { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:13px 16px; cursor:pointer; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; color:#e6edf3; }
+    .grupo-item:active, .grupo-item.sel { border-color:#25d366; background:#161b22; }
+    .grupo-item strong { color:#ffffff; }
+    .badge-wpp { background:#1a3d26; color:#25d366; font-size:.7rem; padding:3px 8px; border-radius:20px; white-space:nowrap; }
+    .alerta { border-radius:8px; padding:12px 14px; font-size:.85rem; margin:10px 0; }
+    .alerta-verde   { background:#0d2119; border:1px solid #238636; color:#3fb950; }
+    .alerta-amarelo { background:#3d2f00; border:1px solid #9e6a03; color:#e3b341; }
+    .alerta-info    { background:#0d1f38; border:1px solid #1f6feb; color:#79c0ff; }
+    .loading-overlay { display:none; position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(13,17,23,.92); z-index:999; flex-direction:column; align-items:center; justify-content:center; }
+    .loading-overlay.ativo { display:flex; }
+    .spinner { width:42px; height:42px; border:4px solid #30363d; border-top-color:#25d366; border-radius:50%; animation:spin .8s linear infinite; margin-bottom:14px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .toast { position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#da3633; color:#fff; padding:12px 20px; border-radius:8px; z-index:1000; font-size:.9rem; display:none; max-width:90vw; text-align:center; }
+    .toast.show { display:block; }
+    .modal-bg { display:none; position:fixed; top:0; right:0; bottom:0; left:0; background:rgba(0,0,0,.7); z-index:500; align-items:center; justify-content:center; padding:16px; }
+    .modal-bg.show { display:flex; }
+    .modal-box { background:#161b22; border:1px solid #30363d; border-radius:12px; padding:24px; width:100%; max-width:420px; }
+    .modal-title { font-size:1.1rem; font-weight:600; margin-bottom:12px; }
+    .modal-footer { margin-top:16px; display:flex; gap:8px; justify-content:flex-end; }
+    .modal-footer .btn { width:auto; padding:10px 20px; }
+    .logo { font-size:2.5rem; margin-bottom:8px; }
+    h2 { font-size:1.2rem; margin:0 0 6px; }
+    p.sub { color:#8b949e; font-size:.9rem; margin:0 0 16px; }
+    #qr-box { text-align:center; padding:20px 0; }
+    #qr-img { width:220px; height:220px; border-radius:8px; background:white; padding:6px; }
+    .section-label { font-size:.78rem; color:#8b949e; text-transform:uppercase; letter-spacing:.06em; margin:16px 0 10px; }
+  </style>
+</head>
+<body>
+
+<div class="navbar">
+  <span style="font-weight:700">🟢 Extrator WhatsApp</span>
+  <span id="info-passo" style="font-size:.75rem;color:#8b949e"></span>
+</div>
+
+<div style="max-width:480px;margin:0 auto;padding:12px">
+
+  <!-- Passo 1: QR Code -->
+  <div id="passo-1" class="step">
+    <div class="card" style="text-align:center">
+      <div class="logo">📱</div>
+      <h2>Conectar WhatsApp</h2>
+      <p class="sub">Escaneie o QR code com seu celular.<br>WhatsApp → ⋮ → Aparelhos conectados → Conectar aparelho</p>
+      <div id="qr-box">
+        <div style="color:#8b949e">Gerando QR code...</div>
+      </div>
+      <div class="hint" style="margin-top:8px">O QR code atualiza automaticamente a cada 20s</div>
+    </div>
+  </div>
+
+  <!-- Passo 2: Grupos -->
+  <div id="passo-2" class="step">
+    <div class="card">
+      <h2>Selecione o grupo</h2>
+      <p class="sub">Escolha o grupo do qual quer extrair os membros.</p>
+      <div id="lista-grupos" style="margin:12px 0;max-height:60vh;overflow-y:auto">
+        <div style="text-align:center;padding:20px;color:#8b949e">Carregando grupos...</div>
+      </div>
+      <button id="btn-extrair" class="btn btn-wpp" onclick="extrair()" disabled>Extrair membros</button>
+    </div>
+  </div>
+
+  <!-- Passo 3: Resultados -->
+  <div id="passo-3" class="step">
+    <div class="card">
+      <h2>✅ Membros extraídos</h2>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-num verde" id="stat-total">0</div><div class="stat-label">Total de membros</div></div>
+        <div class="stat-box"><div class="stat-num azul" id="stat-grupo"></div><div class="stat-label">Grupo de origem</div></div>
+      </div>
+      <div class="alerta alerta-info">
+        ℹ️ O novo grupo será criado com você como admin. Quem tiver privacidade bloqueando adição a grupos pode não entrar.
+      </div>
+      <div class="section-label">O que fazer?</div>
+      <button class="btn btn-wpp" onclick="abrirModalCriar()">👥 Criar novo grupo com esses membros</button>
+      <button class="btn btn-blue" onclick="abrirModalLinkConvite()" style="margin-top:6px">🔗 Gerar link de convite de um grupo</button>
+      <button class="btn btn-outline" onclick="irPara(2)" style="margin-top:6px">🔄 Extrair outro grupo</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal: Criar grupo -->
+<div id="modal-criar-bg" class="modal-bg" onclick="if(event.target===this)fecharModalCriar()">
+  <div class="modal-box">
+    <div class="modal-title">Criar novo grupo</div>
+    <div id="modal-criar-form">
+      <label>Nome do novo grupo</label>
+      <input id="nome-novo-grupo" type="text" placeholder="Ex: Meu Grupo 2024"/>
+    </div>
+    <div id="modal-criar-resultado" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModalCriar()">Cancelar</button>
+      <button id="btn-criar" class="btn btn-wpp" onclick="criarGrupo()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Link de convite -->
+<div id="modal-link-bg" class="modal-bg" onclick="if(event.target===this)fecharModalLink()">
+  <div class="modal-box">
+    <div class="modal-title">🔗 Link de convite</div>
+    <div id="modal-link-form">
+      <div class="alerta alerta-info" style="margin-bottom:12px">Selecione o grupo para gerar o link.</div>
+      <div id="lista-link-grupos" style="max-height:240px;overflow-y:auto">
+        <div style="color:#8b949e">Carregando...</div>
+      </div>
+    </div>
+    <div id="modal-link-resultado" style="display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModalLink()">Fechar</button>
+      <button id="btn-link" class="btn btn-blue" onclick="gerarLink()" disabled>Selecione um grupo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div id="loading-msg" style="color:#8b949e;font-size:.95rem">Aguarde...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const passos = ["passo-1","passo-2","passo-3"]
+  const nomes  = { "passo-1":"Conectar", "passo-2":"Selecionar grupo", "passo-3":"Resultados" }
+  let grupoSel = null
+  let grupoLink = null
+
+  function irPara(n) {
+    const id = typeof n === "number" ? passos[n-1] : n
+    passos.forEach(p => document.getElementById(p).classList.remove("ativo"))
+    document.getElementById(id).classList.add("ativo")
+    document.getElementById("info-passo").textContent = nomes[id] || ""
+    window.scrollTo(0, 0)
+  }
+
+  let _toastTimer
+  function erro(msg) {
+    const t = document.getElementById("toast")
+    t.textContent = msg; t.classList.add("show")
+    clearTimeout(_toastTimer)
+    _toastTimer = setTimeout(() => t.classList.remove("show"), 4000)
+  }
+
+  function load(on, msg) {
+    document.getElementById("loading-msg").textContent = msg || "Aguarde..."
+    document.getElementById("loading").classList.toggle("ativo", on)
+  }
+
+  async function api(url, body) {
+    const opts = { headers: { "Content-Type": "application/json" } }
+    if (body) { opts.method = "POST"; opts.body = JSON.stringify(body) }
+    const r = await fetch(url, opts)
+    const d = await r.json()
+    if (!r.ok || d.erro) throw new Error(d.erro || "Erro desconhecido")
+    return d
+  }
+
+  // ── QR Code ──────────────────────────────────────────────────────────────
+  let _qrTimer = null
+
+  async function verificarConexao() {
+    try {
+      const d = await fetch("/api/status").then(r => r.json())
+      if (d.conectado) {
+        clearInterval(_qrTimer)
+        _qrTimer = null
+        await carregarGrupos()
+        irPara(2)
+      } else if (d.tem_qr) {
+        await atualizarQR()
+      } else {
+        document.getElementById("qr-box").innerHTML =
+          '<div style="color:#8b949e">Aguardando QR code...</div>'
+      }
+    } catch(e) {
+      document.getElementById("qr-box").innerHTML =
+        '<div style="color:#e3b341">Erro ao conectar ao servidor</div>'
+    }
+  }
+
+  async function atualizarQR() {
+    try {
+      const d = await fetch("/api/qr").then(r => r.json())
+      if (d.qr) {
+        document.getElementById("qr-box").innerHTML =
+          `<img id="qr-img" src="${d.qr}" alt="QR Code"/>`
+      }
+    } catch(e) {}
+  }
+
+  // ── Grupos ────────────────────────────────────────────────────────────────
+  async function carregarGrupos() {
+    document.getElementById("lista-grupos").innerHTML =
+      '<div style="text-align:center;padding:20px;color:#8b949e">Carregando grupos...</div>'
+    const d = await fetch("/api/grupos").then(r => r.json())
+    if (d.erro) throw new Error(d.erro)
+    if (!d.grupos.length) {
+      document.getElementById("lista-grupos").innerHTML =
+        '<div style="text-align:center;color:#8b949e">Nenhum grupo encontrado.</div>'
+      return
+    }
+    document.getElementById("lista-grupos").innerHTML = d.grupos.map(g =>
+      `<div class="grupo-item" onclick="selGrupo('${g.id}','${g.nome.replace(/'/g,"\\'")}',${g.total},this)">
+         <strong>${g.nome}</strong>
+         <span class="badge-wpp">${g.total} membros</span>
+       </div>`
+    ).join("")
+  }
+
+  function selGrupo(id, nome, total, el) {
+    grupoSel = { id, nome, total }
+    document.querySelectorAll(".grupo-item").forEach(i => i.classList.remove("sel"))
+    el.classList.add("sel")
+    const btn = document.getElementById("btn-extrair")
+    btn.disabled = false
+    btn.textContent = `Extrair "${nome}" (${total} membros)`
+  }
+
+  async function extrair() {
+    if (!grupoSel) { erro("Selecione um grupo."); return }
+    load(true, "Extraindo membros...")
+    try {
+      const d = await api("/api/extrair", { grupo_id: grupoSel.id })
+      document.getElementById("stat-total").textContent = d.total
+      document.getElementById("stat-grupo").textContent = d.nome
+      document.getElementById("stat-grupo").style.fontSize = d.nome.length > 16 ? "1rem" : "1.5rem"
+      irPara(3)
+    } catch(e) { erro(e.message) }
+    finally { load(false) }
+  }
+
+  // ── Modal: Criar grupo ────────────────────────────────────────────────────
+  function abrirModalCriar() {
+    document.getElementById("modal-criar-form").style.display = "block"
+    document.getElementById("modal-criar-resultado").style.display = "none"
+    document.getElementById("nome-novo-grupo").value = ""
+    const btn = document.getElementById("btn-criar")
+    btn.textContent = "Criar"; btn.disabled = false; btn.style.display = ""
+    document.getElementById("modal-criar-bg").classList.add("show")
+  }
+  function fecharModalCriar() {
+    document.getElementById("modal-criar-bg").classList.remove("show")
+  }
+  async function criarGrupo() {
+    const nome = document.getElementById("nome-novo-grupo").value.trim()
+    if (!nome) { erro("Digite o nome do grupo."); return }
+    const btn = document.getElementById("btn-criar")
+    btn.textContent = "Criando..."; btn.disabled = true
+    try {
+      const d = await api("/api/criar-grupo", { nome })
+      document.getElementById("modal-criar-form").style.display = "none"
+      document.getElementById("modal-criar-resultado").style.display = "block"
+      document.getElementById("modal-criar-resultado").innerHTML =
+        `<div class="alerta alerta-verde">✅ Grupo criado com sucesso!<br>
+         Tentou adicionar ${d.total} membros. Quem tiver privacidade bloqueada não entrou.<br><br>
+         <strong>Dica:</strong> use "🔗 Gerar link de convite" e mande o link no grupo original para os que não entraram.</div>`
+      btn.style.display = "none"
+    } catch(e) { erro(e.message); btn.textContent = "Criar"; btn.disabled = false }
+  }
+
+  // ── Modal: Link de convite ────────────────────────────────────────────────
+  async function abrirModalLinkConvite() {
+    grupoLink = null
+    document.getElementById("modal-link-form").style.display = "block"
+    document.getElementById("modal-link-resultado").style.display = "none"
+    const btn = document.getElementById("btn-link")
+    btn.textContent = "Selecione um grupo"; btn.disabled = true; btn.style.display = ""
+    document.getElementById("modal-link-bg").classList.add("show")
+    const c = document.getElementById("lista-link-grupos")
+    c.innerHTML = '<div style="color:#8b949e">Carregando...</div>'
+    try {
+      const d = await fetch("/api/grupos").then(r => r.json())
+      if (d.erro) throw new Error(d.erro)
+      c.innerHTML = d.grupos.map(g =>
+        `<div class="grupo-item" style="margin-bottom:6px" onclick="selGrupoLink('${g.id}','${g.nome.replace(/'/g,"\\'")}',this)">
+           <strong>${g.nome}</strong>
+           <span class="badge-wpp">${g.total} membros</span>
+         </div>`
+      ).join("")
+    } catch(e) { c.innerHTML = `<div style="color:#e3b341">${e.message}</div>` }
+  }
+  function fecharModalLink() {
+    document.getElementById("modal-link-bg").classList.remove("show")
+  }
+  function selGrupoLink(id, nome, el) {
+    grupoLink = { id, nome }
+    document.querySelectorAll("#lista-link-grupos .grupo-item").forEach(i => i.classList.remove("sel"))
+    el.classList.add("sel")
+    const btn = document.getElementById("btn-link")
+    btn.disabled = false; btn.textContent = `Gerar link de "${nome}"`
+  }
+  async function gerarLink() {
+    if (!grupoLink) { erro("Selecione um grupo."); return }
+    const btn = document.getElementById("btn-link")
+    btn.textContent = "Gerando..."; btn.disabled = true
+    try {
+      const d = await fetch(`/api/link-convite?grupo_id=${encodeURIComponent(grupoLink.id)}`).then(r => r.json())
+      if (d.erro) throw new Error(d.erro)
+      document.getElementById("modal-link-form").style.display = "none"
+      document.getElementById("modal-link-resultado").style.display = "block"
+      document.getElementById("modal-link-resultado").innerHTML =
+        `<div class="alerta alerta-verde" style="word-break:break-all">
+           ✅ Link gerado!<br><br>
+           <a href="${d.link}" target="_blank" style="color:#25d366;font-size:1rem">${d.link}</a><br><br>
+           <span style="font-size:.85rem;color:#8b949e">Mande este link onde quiser. Quem clicar entra no grupo automaticamente.</span>
+         </div>`
+      btn.style.display = "none"
+    } catch(e) { erro(e.message); btn.textContent = `Gerar link de "${grupoLink.nome}"`; btn.disabled = false }
+  }
+
+  document.getElementById("nome-novo-grupo").onkeydown = e => { if(e.key==="Enter") criarGrupo() }
+
+  // ── Iniciar ───────────────────────────────────────────────────────────────
+  irPara(1)
+  verificarConexao()
+  _qrTimer = setInterval(verificarConexao, 5000)
+</script>
+</body>
+</html>
