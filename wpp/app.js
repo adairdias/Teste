@@ -1,7 +1,6 @@
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
 const { Boom } = require('@hapi/boom')
 const express = require('express')
-const qrcode = require('qrcode')
 const path = require('path')
 const P = require('pino')
 
@@ -10,48 +9,52 @@ app.use(express.json())
 app.use(express.static(path.join(__dirname, 'public')))
 
 let sock = null
-let qrData = null
+let pairingCode = null
 let isConnected = false
 let membros = []
 let grupoNome = ''
 
-async function conectar() {
+async function conectar(phone) {
     const { state, saveCreds } = await useMultiFileAuthState('sessao_wpp')
     let version
-    try {
-        const r = await fetchLatestBaileysVersion()
-        version = r.version
-    } catch {
-        version = [2, 3000, 1015901307]
-    }
+    try { version = (await fetchLatestBaileysVersion()).version }
+    catch { version = [2, 3000, 1015901307] }
 
     sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: true,
+        printQRInTerminal: false,
         logger: P({ level: 'silent' }),
         browser: ['Extrator', 'Chrome', '1.0.0'],
     })
 
-    sock.ev.on('connection.update', (update) => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update
-        if (qr) {
-            qrData = qr
-            isConnected = false
-            console.log('[qr] Novo QR code gerado — abra o app para escanear')
+
+        if (qr && phone) {
+            try {
+                const digits = phone.replace(/\D/g, '')
+                pairingCode = await sock.requestPairingCode(digits)
+                console.log(`[código] ${pairingCode}`)
+            } catch(e) {
+                console.error('[!] Erro ao gerar código:', e.message)
+            }
         }
+
         if (connection === 'close') {
             isConnected = false
+            pairingCode = null
             const code = lastDisconnect?.error?.output?.statusCode
             if (code !== DisconnectReason.loggedOut) {
                 console.log('[!] Reconectando...')
-                setTimeout(conectar, 3000)
+                setTimeout(() => conectar(phone), 3000)
             } else {
                 console.log('[!] Sessão encerrada. Reinicie o app.')
+                sock = null
             }
         } else if (connection === 'open') {
             isConnected = true
-            qrData = null
+            pairingCode = null
             console.log('[ok] WhatsApp conectado!')
         }
     })
@@ -62,17 +65,17 @@ async function conectar() {
 // ── Rotas ──────────────────────────────────────────────────────────────────────
 
 app.get('/api/status', (req, res) => {
-    res.json({ conectado: isConnected, tem_qr: !!qrData })
+    res.json({ conectado: isConnected, tem_codigo: !!pairingCode, codigo: pairingCode })
 })
 
-app.get('/api/qr', async (req, res) => {
-    if (!qrData) return res.json({ qr: null })
+app.post('/api/iniciar', async (req, res) => {
+    const { phone } = req.body
+    if (!phone) return res.status(400).json({ erro: 'Informe o número com DDI' })
+    if (sock) { res.json({ ok: true }); return }
     try {
-        const qrImg = await qrcode.toDataURL(qrData)
-        res.json({ qr: qrImg })
-    } catch (e) {
-        res.status(500).json({ erro: e.message })
-    }
+        await conectar(phone)
+        res.json({ ok: true })
+    } catch(e) { res.status(400).json({ erro: e.message }) }
 })
 
 app.get('/api/grupos', async (req, res) => {
@@ -83,7 +86,7 @@ app.get('/api/grupos', async (req, res) => {
             .map(g => ({ id: g.id, nome: g.subject, total: g.participants.length }))
             .sort((a, b) => a.nome.localeCompare(b.nome))
         res.json({ grupos: lista })
-    } catch (e) { res.status(400).json({ erro: e.message }) }
+    } catch(e) { res.status(400).json({ erro: e.message }) }
 })
 
 app.post('/api/extrair', async (req, res) => {
@@ -98,7 +101,7 @@ app.post('/api/extrair', async (req, res) => {
             admin: !!p.admin,
         }))
         res.json({ total: membros.length, nome: grupoNome })
-    } catch (e) { res.status(400).json({ erro: e.message }) }
+    } catch(e) { res.status(400).json({ erro: e.message }) }
 })
 
 app.post('/api/criar-grupo', async (req, res) => {
@@ -106,10 +109,10 @@ app.post('/api/criar-grupo', async (req, res) => {
     if (!membros.length) return res.status(400).json({ erro: 'Extraia os membros primeiro' })
     if (!nome?.trim()) return res.status(400).json({ erro: 'Informe o nome do grupo' })
     try {
-        const ids = membros.map(m => m.id).slice(0, 1023) // limite WhatsApp: 1024
+        const ids = membros.map(m => m.id).slice(0, 1023)
         const result = await sock.groupCreate(nome.trim(), ids)
         res.json({ ok: true, id: result.id, total: ids.length })
-    } catch (e) { res.status(400).json({ erro: e.message }) }
+    } catch(e) { res.status(400).json({ erro: e.message }) }
 })
 
 app.get('/api/link-convite', async (req, res) => {
@@ -118,19 +121,22 @@ app.get('/api/link-convite', async (req, res) => {
     try {
         const code = await sock.groupInviteCode(grupo_id)
         res.json({ link: `https://chat.whatsapp.com/${code}` })
-    } catch (e) { res.status(400).json({ erro: e.message }) }
+    } catch(e) { res.status(400).json({ erro: e.message }) }
 })
 
 // ── Iniciar ────────────────────────────────────────────────────────────────────
-conectar().then(() => {
-    app.listen(3000, '0.0.0.0', () => {
-        console.log('\n' + '='.repeat(50))
-        console.log('  Extrator WhatsApp iniciado!')
-        console.log('  Abra o navegador e acesse:')
-        console.log('  http://localhost:3000')
-        console.log('='.repeat(50) + '\n')
-    })
-}).catch(e => {
-    console.error('Erro ao iniciar:', e)
-    process.exit(1)
+// Tenta reconectar sessão salva automaticamente
+useMultiFileAuthState('sessao_wpp').then(({ state }) => {
+    if (state.creds.registered) {
+        console.log('[info] Sessão salva encontrada, reconectando...')
+        conectar(null)
+    }
+}).catch(() => {})
+
+app.listen(3000, '0.0.0.0', () => {
+    console.log('\n' + '='.repeat(50))
+    console.log('  Extrator WhatsApp iniciado!')
+    console.log('  Abra o navegador e acesse:')
+    console.log('  http://localhost:3000')
+    console.log('='.repeat(50) + '\n')
 })
