@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arbitragem Esportiva | Odds Comparator</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="header-inner">
+        <div class="logo">
+          <span class="logo-icon">⚡</span>
+          <span class="logo-text">ArbiTrack</span>
+          <span class="logo-sub">Comparador de Odds</span>
+        </div>
+        <div id="status-badge" class="badge badge-loading">Conectando...</div>
+      </div>
+    </header>
+
+    <main>
+      <!-- Simulator -->
+      <section class="card simulator-card">
+        <h2>Simulador de Arbitragem</h2>
+        <p class="card-desc">Insira as odds de dois ou três sites diferentes para o mesmo evento e veja se há lucro garantido.</p>
+
+        <div class="sim-inputs">
+          <div class="sim-field">
+            <label>Casa A — Odd do Resultado A</label>
+            <input type="number" id="sim-odds-a" value="2.10" step="0.01" min="1.01" />
+            <span class="site-label">ex: Betfair</span>
+          </div>
+          <div class="sim-field">
+            <label>Casa B — Odd do Resultado B</label>
+            <input type="number" id="sim-odds-b" value="2.20" step="0.01" min="1.01" />
+            <span class="site-label">ex: Bet365</span>
+          </div>
+          <div class="sim-field">
+            <label>Casa C — Empate (opcional)</label>
+            <input type="number" id="sim-odds-c" value="0" step="0.01" min="0" />
+            <span class="site-label">deixe 0 se não houver</span>
+          </div>
+          <div class="sim-field">
+            <label>Valor total a apostar (R$)</label>
+            <input type="number" id="sim-stake" value="100" step="10" min="10" />
+          </div>
+        </div>
+
+        <button id="sim-btn" class="btn btn-primary">Calcular Arbitragem</button>
+
+        <div id="sim-result" class="sim-result hidden"></div>
+      </section>
+
+      <!-- Live Scanner -->
+      <section class="card scanner-card">
+        <h2>Scanner de Arbitragem ao Vivo</h2>
+        <p class="card-desc">Varre odds de múltiplas casas em tempo real para encontrar oportunidades de lucro garantido.</p>
+
+        <div class="scanner-controls">
+          <div class="control-group">
+            <label>Esporte</label>
+            <select id="sport-select">
+              <option value="all">Todos os esportes</option>
+              <option value="tennis_atp">ATP Tennis</option>
+              <option value="tennis_wta">WTA Tennis</option>
+              <option value="soccer_brazil_campeonato">Brasileirão</option>
+              <option value="basketball_nba">NBA</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label>Stake total (R$)</label>
+            <input type="number" id="scan-stake" value="100" step="10" min="10" />
+          </div>
+          <div class="control-group">
+            <label>Lucro mínimo (%)</label>
+            <input type="number" id="min-profit" value="0" step="0.5" min="0" />
+          </div>
+          <button id="scan-btn" class="btn btn-accent">
+            <span id="scan-btn-text">Varrer Agora</span>
+          </button>
+        </div>
+
+        <div id="scan-info" class="scan-info hidden"></div>
+
+        <div id="results-container">
+          <div id="results-empty" class="empty-state">
+            <span class="empty-icon">🔍</span>
+            <p>Clique em "Varrer Agora" para buscar oportunidades de arbitragem.</p>
+          </div>
+          <div id="results-list" class="results-list hidden"></div>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section class="card explainer-card">
+        <h2>Como funciona a arbitragem?</h2>
+        <div class="explainer-grid">
+          <div class="explainer-step">
+            <div class="step-num">1</div>
+            <h3>Odds diferentes em casas diferentes</h3>
+            <p>Cada casa de apostas define suas próprias odds. Às vezes, a soma das probabilidades implícitas de todas as odds disponíveis é menor que 100%.</p>
+          </div>
+          <div class="explainer-step">
+            <div class="step-num">2</div>
+            <h3>Apostar em todos os resultados</h3>
+            <p>Você aposta em todos os resultados possíveis, cada um na casa que oferece a melhor odd para aquele resultado.</p>
+          </div>
+          <div class="explainer-step">
+            <div class="step-num">3</div>
+            <h3>Lucro garantido</h3>
+            <p>Independente do resultado do evento, você recebe de volta mais do que apostou. O lucro é pequeno mas 100% garantido.</p>
+          </div>
+        </div>
+
+        <div class="formula-box">
+          <h4>Fórmula da arbitragem</h4>
+          <div class="formula">
+            <code>Arb% = (1/odd_A + 1/odd_B) × 100</code>
+            <p>Se <strong>Arb% &lt; 100%</strong>, há arbitragem.<br/>
+            Exemplo: 1/2.10 + 1/2.20 = 47.6% + 45.5% = <strong>93.1%</strong> ✅ Lucro de 6.9%</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
