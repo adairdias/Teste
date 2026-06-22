@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ink to SVG Converter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📖 Ink to SVG Converter</h1>
+            <p>Converta seus arquivos Ink em visualizações SVG</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept=".ink" hidden>
+                <div class="upload-content">
+                    <span class="upload-icon">📄</span>
+                    <p>Clique para selecionar ou arraste um arquivo .ink aqui</p>
+                    <span class="file-hint">(Apenas arquivos .ink)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls" id="controls" style="display: none;">
+            <button id="downloadBtn" class="btn btn-primary">⬇️ Baixar SVG</button>
+            <button id="resetBtn" class="btn btn-secondary">🔄 Novo Arquivo</button>
+        </div>
+
+        <div id="loadingSpinner" class="spinner" style="display: none;">
+            <div class="spinner-circle"></div>
+            <p>Processando arquivo...</p>
+        </div>
+
+        <div id="error" class="error-message" style="display: none;"></div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <h2>Visualização SVG</h2>
+            <div class="svg-container" id="svgContainer"></div>
+        </div>
+
+        <div class="info-section">
+            <h3>ℹ️ Informações</h3>
+            <p>Esta ferramenta processa arquivos Ink e gera uma visualização em SVG do fluxo narrativo.</p>
+            <ul>
+                <li>Suporta arquivos .ink padrão</li>
+                <li>Visualiza estrutura de histórias e escolhas</li>
+                <li>Exporta como SVG escalável</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="inkjs.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

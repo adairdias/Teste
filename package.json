@@ -1,0 +1,23 @@
+{
+  "name": "ink-to-svg-web",
+  "version": "1.0.0",
+  "description": "Ferramenta web simples para converter arquivos Ink em visualizações SVG",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "ink",
+    "svg",
+    "converter",
+    "narrative",
+    "web"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
