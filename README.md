@@ -1,6 +1,6 @@
-# 📖 Ink to SVG Web Converter
+# 🔤 Font to SVG Web Converter
 
-Uma ferramenta web simples para converter arquivos Ink em visualizações SVG do fluxo narrativo.
+Uma ferramenta web simples para converter fontes TTF/OTF em visualizações SVG dos glifos.
 
 ## 🚀 Como usar
 
@@ -29,44 +29,18 @@ http://localhost:3000
 
 ### Usando a aplicação
 
-1. **Selecione um arquivo Ink**: Clique na área de upload ou arraste um arquivo `.ink`
-2. **Visualize o SVG**: A estrutura do seu arquivo Ink será visualizada como um diagrama SVG
-3. **Baixe o resultado**: Clique em "Baixar SVG" para exportar a visualização
-
-## 📝 Formato Ink suportado
-
-A aplicação reconhece:
-- Nós (linhas começando com `=`): Representam pontos principais da história
-- Escolhas (linhas começando com `*`): Representam decisões do leitor
-- Diálogos e texto: Texto livre é incluído nos nós
-- Indentação: Representa a profundidade/hierarquia da história
-
-### Exemplo de arquivo Ink:
-
-```ink
-= Início da História
-Este é o começo da sua aventura.
-
-= Primeira Cena
-O protagonista chega ao castelo.
-
-* Entrar pela porta principal
-  = Porta Principal
-  Uma porta grande e imponente.
-
-* Procurar uma entrada traseira
-  = Entrada Traseira
-  Uma entrada secreta atrás das árvores.
-
-= Final
-A aventura termina.
-```
+1. **Selecione uma fonte**: Clique na área de upload ou arraste um arquivo `.ttf` ou `.otf`
+2. **Digite os caracteres**: Escreva os caracteres que deseja visualizar (ex: ABC123)
+3. **Visualize o SVG**: Os glifos serão renderizados como caminhos SVG
+4. **Baixe o resultado**: Clique em "Baixar SVG" para exportar os glifos
 
 ## 🎨 Funcionalidades
 
-- ✅ Upload de arquivos Ink
-- ✅ Parsing automático da estrutura
-- ✅ Visualização em SVG
+- ✅ Upload de fontes TTF e OTF
+- ✅ Parsing automático da fonte
+- ✅ Extração de glifos como caminhos SVG
+- ✅ Seleção personalizável de caracteres
+- ✅ Visualização em tempo real
 - ✅ Exportação de SVG para download
 - ✅ Interface responsiva
 - ✅ Drag & drop de arquivos
@@ -86,14 +60,26 @@ A aventura termina.
 ## 📱 Requisitos
 
 - Node.js 12+
-- Navegador moderno (Chrome, Firefox, Safari, Edge)
+- Navegador moderno com suporte a SVG (Chrome, Firefox, Safari, Edge)
 
 ## 🔧 Desenvolvido com
 
 - **Frontend**: HTML5, CSS3, JavaScript vanilla
 - **Backend**: Node.js + Express
+- **Parsing de Fontes**: opentype.js
 - **Visualização**: SVG nativo
 - **Estilo**: Gradientes modernos e design responsivo
+
+## 💡 Exemplos de uso
+
+### Exportar um alfabeto completo
+Digite no campo: `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`
+
+### Exportar números
+Digite no campo: `0123456789`
+
+### Exportar símbolos específicos
+Digite no campo: `@#$%&*!?`
 
 ## 📄 Licença
 

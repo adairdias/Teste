@@ -1,0 +1,17 @@
+EXEMPLOS DE FONTES PARA TESTAR:
+
+Você pode usar qualquer arquivo de fonte TTF ou OTF para testar a aplicação.
+Algumas fontes populares gratuitas:
+
+1. Roboto: https://fonts.google.com/specimen/Roboto
+2. Open Sans: https://fonts.google.com/specimen/Open+Sans
+3. Playfair Display: https://fonts.google.com/specimen/Playfair+Display
+4. Inconsolata: https://fonts.google.com/specimen/Inconsolata
+
+Como usar:
+1. Baixe um arquivo .ttf de uma das fontes acima
+2. Abra a aplicação web
+3. Arraste o arquivo para a área de upload
+4. Digite os caracteres que deseja visualizar
+5. Clique em "Atualizar" para ver a preview
+6. Clique em "Baixar SVG" para exportar

@@ -3,35 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ink to SVG Converter</title>
+    <title>Font to SVG Converter</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📖 Ink to SVG Converter</h1>
-            <p>Converta seus arquivos Ink em visualizações SVG</p>
+            <h1>🔤 Font to SVG Converter</h1>
+            <p>Converta suas fontes TTF em visualizações SVG</p>
         </header>
 
         <div class="upload-section">
             <div class="upload-area" id="uploadArea">
-                <input type="file" id="fileInput" accept=".ink" hidden>
+                <input type="file" id="fileInput" accept=".ttf,.otf" hidden>
                 <div class="upload-content">
-                    <span class="upload-icon">📄</span>
-                    <p>Clique para selecionar ou arraste um arquivo .ink aqui</p>
-                    <span class="file-hint">(Apenas arquivos .ink)</span>
+                    <span class="upload-icon">🔤</span>
+                    <p>Clique para selecionar ou arraste um arquivo de fonte aqui</p>
+                    <span class="file-hint">(Apenas arquivos .ttf ou .otf)</span>
                 </div>
             </div>
         </div>
 
         <div class="controls" id="controls" style="display: none;">
-            <button id="downloadBtn" class="btn btn-primary">⬇️ Baixar SVG</button>
-            <button id="resetBtn" class="btn btn-secondary">🔄 Novo Arquivo</button>
+            <div class="control-group">
+                <label for="charInput">Caracteres a exportar:</label>
+                <input type="text" id="charInput" placeholder="Escreva os caracteres (ex: Abc123)" value="ABC">
+                <button id="updateBtn" class="btn btn-secondary">🔄 Atualizar</button>
+            </div>
+            <div class="control-group">
+                <button id="downloadBtn" class="btn btn-primary">⬇️ Baixar SVG</button>
+                <button id="resetBtn" class="btn btn-secondary">🔄 Novo Arquivo</button>
+            </div>
         </div>
 
         <div id="loadingSpinner" class="spinner" style="display: none;">
             <div class="spinner-circle"></div>
-            <p>Processando arquivo...</p>
+            <p>Processando fonte...</p>
         </div>
 
         <div id="error" class="error-message" style="display: none;"></div>
@@ -43,16 +50,17 @@
 
         <div class="info-section">
             <h3>ℹ️ Informações</h3>
-            <p>Esta ferramenta processa arquivos Ink e gera uma visualização em SVG do fluxo narrativo.</p>
+            <p>Esta ferramenta converte fontes TTF/OTF para SVG, extraindo os glifos individuais.</p>
             <ul>
-                <li>Suporta arquivos .ink padrão</li>
-                <li>Visualiza estrutura de histórias e escolhas</li>
-                <li>Exporta como SVG escalável</li>
+                <li>Suporta fontes TTF e OTF</li>
+                <li>Extrai glifos como caminhos SVG</li>
+                <li>Personalizável - escolha quais caracteres exportar</li>
+                <li>Escalável e editável em qualquer programa de design</li>
             </ul>
         </div>
     </div>
 
-    <script src="inkjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4"></script>
     <script src="app.js"></script>
 </body>
 </html>
